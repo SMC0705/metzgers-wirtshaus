@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Didact+Gothic&family=Alegreya:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <header class="schild-wrap">
@@ -43,8 +43,8 @@
 <datalist id="getraenkeliste"></datalist>
 <datalist id="namenliste"></datalist>
 <datalist id="groessen"><option value="0,33"><option value="0,5"><option value="0,7"><option value="1"><option value="0,02"><option value="0,04"></datalist>
-<script src="konfig.js"></script>
-<script src="gemeinsam.js"></script>
+<script src="konfig.js?v=8"></script>
+<script src="gemeinsam.js?v=8"></script>
 <script>
 (function(){
 const W=window.W,K=window.KONFIG,esc=W.esc,fmt=W.fmt;
@@ -104,7 +104,7 @@ function anmeldung(){
   <p>Damit deine Änderungen bei allen ankommen, braucht diese App einmalig deinen GitHub-Schlüssel (Fine-grained Token mit „Contents: Read and write“ nur für das Repo <strong>${esc(K.github.repo)}</strong>). Er bleibt nur auf diesem Handy gespeichert.</p>
   ${fehlerText?`<p style="color:var(--red);font-weight:800">${esc(fehlerText)}</p>`:""}
   <label for="tok">GitHub-Token</label><input type="password" id="tok" autocomplete="off" placeholder="github_pat_…">
-  <div class="reihe"><button class="knopf" data-a="verbinden">Verbinden</button></div></div>`;
+  <div class="reihe"><button class="knopf" data-a="verbinden">Verbinden</button>${W.LS.get("mwa-token")?`<button class="knopf leise" data-a="nochmal">Nochmal versuchen</button>`:""}</div></div>`;
 }
 function abendForm(){
   const a=draft.abend;
@@ -270,7 +270,8 @@ document.addEventListener("click",e=>{
   switch(el.dataset.a){
     case"verbinden":{
       const v=W.$("#tok").value.trim();if(!v){W.toast("Bitte den Token einfügen.");return}
-      token=v;fehlerText="";mitKnopf(el,async()=>{await start();});break;}
+      token=v;fehlerText="";mitKnopf(el,async()=>{await start();ladeZusagen()});break;}
+    case"nochmal":token=W.LS.get("mwa-token")||"";fehlerText="";render();mitKnopf(el,async()=>{await start();ladeZusagen()});break;
     case"abmelden":if(confirm("Token von diesem Handy löschen?")){W.LS.del("mwa-token");token="";D=null;render()}break;
     case"rowAdd":draft.abend.rows.push(leereZeile());render();{const f=W.$("#r"+(draft.abend.rows.length-1)+"n");f&&f.focus()}break;
     case"rowDel":draft.abend.rows.splice(Number(el.dataset.i),1);render();break;
@@ -337,13 +338,26 @@ document.addEventListener("click",e=>{
 
 async function start(){
   if(!token){render();return}
-  try{
-    D=(await holeDatei()).daten;W.LS.set("mwa-token",token);fehlerText="";
-    W.setzeZusagenUrl(D.einstellungen.zusagenUrl||K.zusagenUrl);if(!W.zusagenAktiv())Z=[];
-  }catch(e){
-    D=null;fehlerText=e.message==="token"?"Der Token passt nicht oder hat keine Schreibrechte für das Repo.":e.message==="fehlt"?"data.json wurde im Repo nicht gefunden. Prüf konfig.js.":"Keine Verbindung zu GitHub. Prüf dein Internet.";
+  if(typeof W.setzeZusagenUrl!=="function"||typeof W.testeZusagenUrl!=="function"){
+    D=null;fehlerText="Die App-Dateien passen nicht zusammen: gemeinsam.js ist noch die alte Version. Lade alle Dateien aus dem Update hoch, warte ein paar Minuten und lade die Seite neu. Dein Token ist in Ordnung.";
+    render();return;
   }
-  render();
+  let datei;
+  try{datei=await holeDatei()}
+  catch(e){
+    D=null;
+    fehlerText=e.message==="token"?"GitHub hat den Token abgelehnt. Prüf bei GitHub unter „Fine-grained tokens“, ob er noch existiert und bei „Contents“ auf „Read and write“ steht."
+      :e.message==="fehlt"?"data.json wurde im Repo nicht gefunden. Prüf in konfig.js den Repo-Namen."
+      :e instanceof TypeError?"Keine Verbindung zu GitHub. Prüf dein Internet und tipp auf „Nochmal versuchen“."
+      :"GitHub meldet einen Fehler ("+e.message+"). Tipp in ein paar Minuten auf „Nochmal versuchen“.";
+    render();return;
+  }
+  D=datei.daten;W.LS.set("mwa-token",token);fehlerText="";
+  try{W.setzeZusagenUrl(D.einstellungen.zusagenUrl||K.zusagenUrl);if(!W.zusagenAktiv())Z=[]}catch(e){Z=[]}
+  try{render()}catch(e){
+    D=null;fehlerText="Beim Anzeigen ist ein Fehler aufgetreten ("+e.message+"). Lade alle Dateien aus dem letzten Update hoch und lade die Seite neu. Dein Token ist in Ordnung.";
+    render();
+  }
 }
 async function ladeZusagen(){
   if(!W.zusagenAktiv())return;

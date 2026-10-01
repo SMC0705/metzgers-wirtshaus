@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Didact+Gothic&family=Alegreya:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <header class="schild-wrap">
@@ -40,8 +40,8 @@
 <main id="inhalt"><p class="laden">Bierdeckel werden gezählt …</p></main>
 <div id="gate" hidden></div>
 <div id="toast" hidden role="status"></div>
-<script src="konfig.js"></script>
-<script src="gemeinsam.js"></script>
+<script src="konfig.js?v=8"></script>
+<script src="gemeinsam.js?v=8"></script>
 <script>
 (function(){
 const W=window.W,K=window.KONFIG,esc=W.esc,fmt=W.fmt;
@@ -267,7 +267,8 @@ async function ladeZusagen(){
   render();registriere();
 }
 async function laden(){
-  try{D=await W.ladeDaten();fehler=false;W.setzeZusagenUrl(D.einstellungen.zusagenUrl||K.zusagenUrl);if(!W.zusagenAktiv())Z=[]}catch(e){if(!D)fehler=true}
+  try{D=await W.ladeDaten();fehler=false}catch(e){if(!D)fehler=true}
+  if(D){try{W.setzeZusagenUrl((D.einstellungen&&D.einstellungen.zusagenUrl)||K.zusagenUrl)}catch(e){}if(!W.zusagenAktiv())Z=[]}
   render();
 }
 laden().then(ladeZusagen);
