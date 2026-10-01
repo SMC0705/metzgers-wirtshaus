@@ -48,7 +48,8 @@
 <script>
 (function(){
 const W=window.W,K=window.KONFIG,esc=W.esc,fmt=W.fmt;
-let D=null,token=W.LS.get("mwa-token")||"",fehlerText="",Z=W.zusagenAktiv()?null:[];
+let D=null,token=W.LS.get("mwa-token")||"",fehlerText="",Z=null;
+const offen=new Set(["abend"]);let urlEntwurf=null,urlTest=null;
 const offeneLeute=new Set();
 const draft={abend:null,spiel:null,regeln:null};
 
@@ -142,7 +143,7 @@ function werKommt(){
   const h=W.heute();
   const kommend=D.abende.filter(a=>String(a.datum||"")>=h).sort((a,b)=>(a.datum+(a.uhrzeit||"")).localeCompare(b.datum+(b.uhrzeit||"")));
   let inhalt;
-  if(!W.zusagenAktiv())inhalt=`<div class="warnung"><p><strong>Zusagen sind ausgeschaltet.</strong></p><p>In <code>konfig.js</code> ist bei <code>zusagenUrl</code> noch keine Adresse eingetragen. Deshalb sehen die Gäste keine Knöpfe „Ja, ich komme“ / „Nein, ich komme nicht“. Siehe ANLEITUNG, Schritt 3.</p></div>`;
+  if(!W.zusagenAktiv())inhalt=`<div class="warnung"><p><strong>Zusagen sind noch nicht verbunden.</strong></p><p>Deshalb sehen die Gäste keine Knöpfe „Ja, ich komme“ / „Nein, ich komme nicht“. Öffne unten <strong>„Einstellungen“</strong>, füg die Web-App-URL ein und tipp auf „Testen“.</p><div class="reihe"><button class="knopf klein" data-a="zuEinst">Zu den Einstellungen</button></div></div>`;
   else if(!kommend.length)inhalt=`<div class="warnung"><p><strong>Kein kommender Abend eingetragen.</strong></p><p>Die Gäste sehen die Knöpfe „Ja, ich komme“ / „Nein, ich komme nicht“ erst, wenn unten ein Abend mit heutigem oder späterem Datum gespeichert ist.</p></div>`;
   else if(Z===null)inhalt=`<p class="hinweis">Zusagen werden geladen …</p>`;
   else inhalt=kommend.map(a=>{const ja=W.leute(Z,a.id,"ja"),nein=W.leute(Z,a.id,"nein");
@@ -151,6 +152,32 @@ function werKommt(){
       ${nein.length?`<p class="hinweis">Abgesagt: ${W.namenText(nein)}</p>`:""}
       <div class="reihe"><button class="knopf leise klein" data-a="teilen" data-id="${esc(a.id)}">📤 In die Gruppe schicken</button></div></div>`}).join("");
   return `<div class="papier"><h2>Wer kommt?</h2>${inhalt}${W.zusagenAktiv()?`<div class="reihe"><button class="knopf leise klein" data-a="zNeu">Aktualisieren</button></div>`:""}</div>`;
+}
+function zusagenTabelle(){
+  if(!W.zusagenAktiv())return `<div class="papier"><p class="leer">Erst unter „Einstellungen“ die Zusagen verbinden.</p></div>`;
+  if(Z===null)return `<div class="papier"><p class="hinweis">Wird geladen …</p></div>`;
+  const ab=W.abendeSortiert(D).slice(0,8);
+  const namen=W.alleNamen(Z);
+  if(!ab.length||!namen.length)return `<div class="papier"><p class="leer">Noch keine Abende oder Gäste.</p></div>`;
+  const zelle=(id,n)=>{const st=W.meinStatus(Z,id,n);return st==="ja"?`<td class="z ja" title="kommt">✔</td>`:st==="nein"?`<td class="z nein" title="kommt nicht">✖</td>`:`<td class="z">·</td>`};
+  return `<div class="papier"><p class="hinweis">✔ = kommt / war da · ✖ = kommt nicht · = keine Antwort. Die neuesten Abende stehen links.</p>
+  <div class="scroll"><table class="zusagen"><thead><tr><th>Name</th>${ab.map(x=>`<th class="z">${esc(W.datumText(x.datum).replace(/^\w+\.,\s*/,"").slice(0,6))}<br><span class="marke ${x.datum<W.heute()?"war":"kommt"}">${x.datum<W.heute()?"war":"kommt"}</span></th>`).join("")}</tr></thead>
+  <tbody>${namen.map(n=>`<tr><td>${esc(n)}</td>${ab.map(x=>zelle(x.id,n)).join("")}</tr>`).join("")}
+  <tr class="gesamt"><td>Zusagen</td>${ab.map(x=>`<td class="z">${W.leute(Z,x.id,"ja").length}</td>`).join("")}</tr></tbody></table></div>
+  <div class="reihe"><button class="knopf leise klein" data-a="zNeu">Aktualisieren</button></div></div>`;
+}
+function einstellungen(){
+  const gespeichert=D.einstellungen.zusagenUrl||"";
+  const wert=urlEntwurf!==null?urlEntwurf:(gespeichert||K.zusagenUrl||"");
+  return `<div class="papier"><h3 style="margin-top:0">Zusagen verbinden (Google-Tabelle)</h3>
+  <p class="hinweis">Die Antworten der Gäste werden in deiner Google-Tabelle gespeichert. Anschauen musst du sie dort nicht, alles steht hier in der App unter „Zusagen-Tabelle“.</p>
+  <label for="z-url">Web-App-URL (endet auf /exec)</label>
+  <input type="text" id="z-url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(wert)}">
+  <div class="reihe"><button class="knopf leise" data-a="urlTest">Testen</button><button class="knopf" data-a="urlSave">Speichern</button></div>
+  ${urlTest?`<div class="${urlTest.ok?"tag-detail":"warnung"}" style="margin-top:12px"><p>${urlTest.ok?"✔ ":"✖ "}${esc(urlTest.text)}</p></div>`:""}
+  <p class="hinweis" style="margin-top:12px">Status: ${W.zusagenAktiv()?"verbunden":"nicht verbunden"}${gespeichert?"":K.zusagenUrl?" (aus konfig.js)":""}</p>
+  <h3>Zugang</h3>
+  <div class="reihe" style="margin-top:4px"><a class="knopf leise" href="./">Zur Gast-App</a><button class="knopf weg" data-a="abmelden">Token von diesem Handy löschen</button></div></div>`;
 }
 function gaeste(){
   if(!W.zusagenAktiv())return"";
@@ -162,7 +189,7 @@ function gaeste(){
     <thead><tr><th>Name</th><th class="n">Zusagen</th><th class="n">Bierpong-Siege</th><th class="n">Punkte</th></tr></thead><tbody>
     ${namen.map(n=>{const zu=Z.filter(z=>z.abend!==W.REG&&z.status==="ja"&&W.gleicherName(z.name,n)).length;const b=pk.get(n.toLowerCase());
       return `<tr><td>${esc(n)}</td><td class="n">${zu}</td><td class="n">${b?b.s:0}</td><td class="n">${b?fmt(b.pk):0}</td></tr>`}).join("")}
-    </tbody></table></div><p class="hinweis">Doppelte oder falsch geschriebene Namen löschst du direkt in der Google-Tabelle.</p></div>`;
+    </tbody></table></div><p class="hinweis">Doppelte oder falsch geschriebene Namen kannst du in der Google-Tabelle löschen.</p></div>`;
 }
 function spielerNamen(){
   const m=new Map();
@@ -221,7 +248,12 @@ function render(){
   const namen=[...new Set(["Helles","Weißbier","Pils","Radler","Spezi","Schnaps",...W.getraenkeSumme(D.abende).map(x=>x.name)])];
   W.$("#getraenkeliste").innerHTML=namen.map(n=>`<option value="${esc(n)}">`).join("");
   W.$("#namenliste").innerHTML=W.alleNamen(Z).map(n=>`<option value="${esc(n)}">`).join("");
-  main.innerHTML=werKommt()+gaeste()+abendForm()+abendListe()+spielForm()+regelForm()+technik();
+  const teile=[["zusagen","Zusagen-Tabelle",zusagenTabelle],["abend",draft.abend.id?"Abend bearbeiten":"Abend eintragen",abendForm],["abende","Alle Abende",abendListe],
+    ["gaeste","Angemeldete Gäste",gaeste],["bp","Bierpong",spielForm],["regeln","Regeln bearbeiten",regelForm],["einst","Einstellungen",einstellungen]];
+  main.innerHTML=werKommt()+teile.map(([k,t,fn])=>{const o=offen.has(k);
+    let inh=o?fn():"";if(o&&!inh)inh=`<div class="papier"><p class="leer">Erst unter „Einstellungen“ die Zusagen verbinden.</p></div>`;
+    inh=inh.replace(/^<div class="papier">\s*<h2>[^<]*<\/h2>/,'<div class="papier">');
+    return `<section class="tab"><button class="brett" data-a="atab" data-k="${k}" aria-expanded="${o}"><span class="nagel"></span><span class="titel">${t}</span><span class="pfeil" aria-hidden="true">▸</span></button>${inh}</section>`}).join("");
 }
 
 /* ---------- Eingaben ---------- */
@@ -247,7 +279,7 @@ document.addEventListener("click",e=>{
       const x=D.abende.find(y=>y.id===el.dataset.id);if(!x)return;
       draft.abend={id:x.id,datum:x.datum||W.heute(),uhrzeit:x.uhrzeit||"",titel:x.titel||"",notiz:x.notiz||"",
         rows:(x.getraenke||[]).map(g=>({name:g.name||"",anzahl:fmt(g.anzahl,2),groesse:fmt(g.groesse,3)})),};
-      render();window.scrollTo({top:0,behavior:"smooth"});break;}
+      offen.add("abend");render();{const b=document.querySelector('[data-k="abend"]');b&&b.scrollIntoView({behavior:"smooth"})}break;}
     case"abendSave":mitKnopf(el,async()=>{
       const a=draft.abend;
       if(!a.datum){W.toast("Bitte ein Datum wählen.");return}
@@ -262,6 +294,15 @@ document.addEventListener("click",e=>{
       mitKnopf(el,async()=>{await speichere(d=>{d.abende=d.abende.filter(y=>y.id!==x.id)},"Abend gelöscht: "+x.datum);render();W.toast("Abend gelöscht.")});break;}
     case"teilen":{const x=D.abende.find(y=>y.id===el.dataset.id);if(x)teilen(x);break;}
     case"zNeu":ladeZusagen();break;
+    case"atab":{const k=el.dataset.k;offen.has(k)?offen.delete(k):offen.add(k);render();break;}
+    case"zuEinst":offen.add("einst");render();{const b=document.querySelector('[data-k="einst"]');b&&b.scrollIntoView({behavior:"smooth"})}break;
+    case"urlTest":mitKnopf(el,async()=>{urlEntwurf=W.$("#z-url").value;urlTest=await W.testeZusagenUrl(urlEntwurf);urlEntwurf=urlTest.url||urlEntwurf;render()});break;
+    case"urlSave":mitKnopf(el,async()=>{
+      urlEntwurf=W.$("#z-url").value;const t=await W.testeZusagenUrl(urlEntwurf);urlTest=t;
+      if(!t.ok&&W.normUrl(urlEntwurf)!==""){render();W.toast("Nicht gespeichert: Die Verbindung klappt noch nicht.");return}
+      await speichere(d=>{d.einstellungen=Object.assign({},d.einstellungen,{zusagenUrl:t.url||""})},"Zusagen-Verbindung");
+      W.setzeZusagenUrl(D.einstellungen.zusagenUrl||K.zusagenUrl);urlEntwurf=null;Z=null;render();
+      W.toast(t.url?"Gespeichert. Die Gäste sehen die Knöpfe in ca. 1 Minute.":"Verbindung entfernt.");ladeZusagen();});break;
     case"teamChip":{const k="team"+el.dataset.t,n=el.dataset.n,l=W.teile(draft.spiel[k]);const i=l.findIndex(x=>W.gleicherName(x,n));
       if(i>=0)l.splice(i,1);else l.push(n);draft.spiel[k]=l.join(", ");render();break;}
     case"leutDazu":{
@@ -298,6 +339,7 @@ async function start(){
   if(!token){render();return}
   try{
     D=(await holeDatei()).daten;W.LS.set("mwa-token",token);fehlerText="";
+    W.setzeZusagenUrl(D.einstellungen.zusagenUrl||K.zusagenUrl);if(!W.zusagenAktiv())Z=[];
   }catch(e){
     D=null;fehlerText=e.message==="token"?"Der Token passt nicht oder hat keine Schreibrechte für das Repo.":e.message==="fehlt"?"data.json wurde im Repo nicht gefunden. Prüf konfig.js.":"Keine Verbindung zu GitHub. Prüf dein Internet.";
   }
@@ -310,7 +352,7 @@ async function ladeZusagen(){
 }
 document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("leute")){d.open?offeneLeute.add(d.dataset.id):offeneLeute.delete(d.dataset.id)}},true);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&D)ladeZusagen()});
-start();ladeZusagen();
+start().then(ladeZusagen);
 })();
 </script>
 </body>

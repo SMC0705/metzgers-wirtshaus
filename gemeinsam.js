@@ -21,7 +21,9 @@ W.normal=d=>{
   d=d&&typeof d==="object"?d:{};
   const r=d.regeln&&typeof d.regeln==="object"?d.regeln:{};
   const arr=x=>Array.isArray(x)?x:[];
-  return {regeln:{hausKopf:arr(r.hausKopf),hausRegeln:arr(r.hausRegeln),bierpongRegeln:arr(r.bierpongRegeln)},abende:arr(d.abende),spiele:arr(d.spiele)};
+  const e=d.einstellungen&&typeof d.einstellungen==="object"?d.einstellungen:{};
+  return {regeln:{hausKopf:arr(r.hausKopf),hausRegeln:arr(r.hausRegeln),bierpongRegeln:arr(r.bierpongRegeln)},abende:arr(d.abende),spiele:arr(d.spiele),
+    einstellungen:{zusagenUrl:String(e.zusagenUrl||"").trim()}};
 };
 W.apiUrl=()=>{const g=K.github;return `https://api.github.com/repos/${g.besitzer}/${g.repo}/contents/${g.datei}`};
 W.ladeDaten=async function(){
@@ -137,16 +139,33 @@ W.icsHref=a=>{
 let toastT;
 W.toast=t=>{const e=W.$("#toast");if(!e)return;e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,3600)};
 /* ---------- Zusagen (Google-Tabelle) ---------- */
-W.zusagenAktiv=()=>!!(K.zusagenUrl&&String(K.zusagenUrl).trim());
+let zUrl=String(K.zusagenUrl||"").trim();
+W.setzeZusagenUrl=u=>{zUrl=String(u||"").trim()};
+W.zusagenAktiv=()=>!!zUrl;
+W.normUrl=u=>String(u||"").trim().replace(/\/macros\/u\/\d+\/s\//,"/macros/s/");
+W.testeZusagenUrl=async roh=>{
+  const u=W.normUrl(roh);
+  if(!u)return {ok:false,url:u,text:"Bitte zuerst die Web-App-URL einfügen."};
+  if(/docs\.google\.com\/spreadsheets/.test(u))return {ok:false,url:u,text:"Das ist die Adresse der Tabelle selbst. Gebraucht wird die Web-App-URL aus Apps Script (Bereitstellen → Bereitstellungen verwalten). Sie endet auf /exec."};
+  if(/script\.google\.com\/macros\/s\/[^/]+\/dev$/.test(u))return {ok:false,url:u,text:"Das ist die Test-Adresse (endet auf /dev). Du brauchst die Web-App-URL, die auf /exec endet."};
+  if(/script\.google\.com\/(home|d)\//.test(u))return {ok:false,url:u,text:"Das ist die Adresse vom Apps-Script-Editor. Gebraucht wird die Web-App-URL: Bereitstellen → Bereitstellungen verwalten → Web-App-URL kopieren (endet auf /exec)."};
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(u))return {ok:false,url:u,text:"Die Adresse sieht falsch aus. Sie muss mit https://script.google.com/macros/s/ beginnen und auf /exec enden."};
+  let t;
+  try{const r=await fetch(u+"?t="+Date.now(),{cache:"no-store"});t=await r.text()}
+  catch(e){return {ok:false,url:u,text:"Google lässt die App nicht zugreifen. Fast immer fehlt „Zugriff: Jeder“. In Apps Script: Bereitstellen → Bereitstellungen verwalten → ✏️ Bearbeiten → Zugriff „Jeder“, Version „Neue Version“ → Bereitstellen."}}
+  let j;try{j=JSON.parse(t)}catch(e){return {ok:false,url:u,text:"Google antwortet mit einer Webseite statt mit Daten. Meist wurde der Code vor dem Bereitstellen nicht gespeichert oder „Zugriff: Jeder“ fehlt. Code speichern, dann neue Version bereitstellen."}}
+  if(j&&j.ok&&Array.isArray(j.zusagen))return {ok:true,url:u,text:`Verbindung klappt! In der Tabelle stehen ${j.zusagen.length} Einträge.`};
+  return {ok:false,url:u,text:"Google antwortet, aber nicht wie erwartet. Prüf, ob der komplette Code aus zusagen-apps-script.gs eingefügt und gespeichert ist."};
+};
 W.ladeZusagen=async()=>{
   if(!W.zusagenAktiv())return[];
-  const r=await fetch(K.zusagenUrl+(K.zusagenUrl.includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"});
+  const r=await fetch(zUrl+(zUrl.includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"});
   const j=await r.json();
   if(!j||!j.ok)throw new Error("zusagen");
   return Array.isArray(j.zusagen)?j.zusagen:[];
 };
 W.sendeZusage=async(abend,name,status)=>{
-  const r=await fetch(K.zusagenUrl,{method:"POST",body:JSON.stringify({abend,name,status})});
+  const r=await fetch(zUrl,{method:"POST",body:JSON.stringify({abend,name,status})});
   const j=await r.json();
   if(!j||!j.ok)throw new Error("zusage");
   return Array.isArray(j.zusagen)?j.zusagen:[];
@@ -157,6 +176,8 @@ W.leute=(Z,id,status)=>(Z||[]).filter(z=>z.abend===id&&z.status===status).map(z=
 W.meinStatus=(Z,id,name)=>{const z=(Z||[]).find(z=>z.abend===id&&gleich(z.name,name));return z?z.status:null};
 W.alleNamen=Z=>{const m=new Map();(Z||[]).forEach(z=>{const k=String(z.name).trim().toLowerCase();if(k&&!m.has(k))m.set(k,String(z.name).trim())});return [...m.values()].sort((a,b)=>a.localeCompare(b,"de"))};
 W.namenText=arr=>arr.map(W.esc).join(", ");
+W.REG="_angemeldet";
+W.teile=t=>String(t||"").split(",").map(x=>x.trim().replace(/\s+/g," ")).filter(Boolean);
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 window.W=W;

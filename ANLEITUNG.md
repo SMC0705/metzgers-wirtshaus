@@ -14,19 +14,20 @@
 - Ablaufdatum wählen (z. B. 1 Jahr), Token kopieren und in der Wirts-App einfügen.
 
 ## 3. Zusagen einrichten (Google-Tabelle, kostenlos, ca. 5 Minuten)
-Die Gäste haben kein GitHub-Konto. Ihre Zusagen landen deshalb in einer Google-Tabelle, die nur du besitzt.
-1. Auf sheets.google.com eine neue, leere Tabelle anlegen, z. B. „Wirtshaus Zusagen“.
-2. Menü **Erweiterungen → Apps Script**. Den vorhandenen Code löschen, den Inhalt von
-   `zusagen-apps-script.gs` einfügen, oben auf 💾 Speichern.
-3. Oben rechts **Bereitstellen → Neue Bereitstellung** → Zahnrad → **Web-App**.
-   - Ausführen als: **Ich**
-   - Zugriff: **Jeder**
-4. **Bereitstellen**, Google fragt nach Berechtigungen → erlauben
-   (bei „Google hat diese App nicht überprüft“: Erweitert → Weiter zu …).
-5. Die **Web-App-URL** (endet auf `/exec`) kopieren und in `konfig.js` bei `zusagenUrl` eintragen.
-6. `konfig.js` neu auf GitHub hochladen. Fertig.
+Die Gäste haben kein GitHub-Konto. Ihre Antworten landen deshalb in einer Google-Tabelle, die nur dir gehört.
+Anschauen musst du die Tabelle nie: Alles steht in der Wirts-App unter „Zusagen-Tabelle“.
+1. Auf sheets.google.com eine neue, leere Tabelle anlegen.
+2. Menü **Erweiterungen → Apps Script**. Vorhandenen Code löschen, Inhalt von `zusagen-apps-script.gs` einfügen
+   und auf 💾 **Speichern** tippen (wichtig, sonst wird leerer Code bereitgestellt).
+3. **Bereitstellen → Neue Bereitstellung** → Zahnrad → **Web-App**.
+   Ausführen als: **Ich** · Zugriff: **Jeder** (nicht „Jeder mit Google-Konto“!) → **Bereitstellen**.
+4. Berechtigungen erlauben (bei „Google hat diese App nicht überprüft“: Erweitert → Weiter zu …).
+5. Die **Web-App-URL** kopieren (beginnt mit `https://script.google.com/macros/s/` und endet auf `/exec`).
+6. In der **Wirts-App → Einstellungen** einfügen, **Testen** tippen. Klappt es, **Speichern**. Fertig.
+   `konfig.js` musst du dafür nicht mehr ändern.
 
-Die Zusagen kannst du jederzeit direkt in der Tabelle ansehen oder korrigieren.
+Sagt der Test, dass etwas nicht stimmt, steht dort direkt, woran es liegt.
+Änderst du später etwas am Skript: Bereitstellen → Bereitstellungen verwalten → ✏️ → Version „Neue Version“ → Bereitstellen.
 
 ## Hinweise
 - Gäste installieren nur die Gast-App über den Link (Browser-Menü → „Zum Startbildschirm“), mehr nicht.

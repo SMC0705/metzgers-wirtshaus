@@ -1,8 +1,8 @@
 :root{
   --wood:#4a2e1b; --wood-dark:#24150b; --plank-a:#6a4329; --plank-b:#4b2d1a;
   --paper:#f1e4c6; --paper-edge:#d6bf8f; --ink:#2a1b10; --ink-soft:#6b5238;
-  --brass:#c99a3f; --brass-light:#e9c877; --green:#2c4733; --green-dark:#1d3123;
-  --red:#8c2f22; --chalk:#2c332e; --chalk-ink:#ece7da; --chalk-soft:#b9b6aa;
+  --brass:#c99a3f; --brass-light:#e9c877; --green:#a3262f; --green-dark:#6b141b; --shirt:#b52f3a;
+  --red:#7a1c22; --chalk:#2c332e; --chalk-ink:#ece7da; --chalk-soft:#b9b6aa;
   --frakt:'UnifrakturMaguntia','Old English Text MT',Georgia,serif;
   --text:'Alegreya',Georgia,'Times New Roman',serif;
   box-sizing:border-box;
@@ -35,10 +35,10 @@ a{color:inherit}
 .schild-wrap{display:flex;justify-content:center;padding:34px 16px 18px}
 .schild{
   position:relative;text-align:center;
-  background:radial-gradient(ellipse at 50% 30%,#365a40 0%,var(--green) 55%,var(--green-dark) 100%);
+  background:radial-gradient(ellipse at 45% 35%,#c9414c 0%,var(--shirt) 50%,#8e1f28 100%);
   border:3px solid var(--brass);outline:7px solid var(--wood-dark);
   border-radius:14px 14px 40px 40px / 14px 14px 26px 26px;
-  padding:14px 34px 18px;max-width:560px;width:100%;
+  padding:18px 22px 16px;max-width:600px;width:100%;
   box-shadow:0 14px 30px rgba(0,0,0,.55), inset 0 0 0 6px rgba(0,0,0,.18);
   transform-origin:50% -30px;animation:schwingen 2.4s ease-out 1;
 }
@@ -50,7 +50,9 @@ a{color:inherit}
 .schild h1{margin:0;font-weight:400;line-height:1;color:var(--brass-light);text-shadow:0 2px 0 rgba(0,0,0,.45)}
 .schild .gross{display:block;font-family:var(--frakt);font-size:clamp(2.8rem,12vw,4.6rem)}
 .schild .klein{display:block;font-family:var(--frakt);font-size:clamp(1.3rem,5.4vw,2rem);margin-top:6px;color:#f3e3b3}
-.schild.wirt{background:radial-gradient(ellipse at 50% 30%,#6a4329 0%,var(--plank-b) 60%,var(--wood-dark) 100%)}
+.schild .logo{display:block;width:100%;height:auto}
+.schild-zusatz{margin:8px 0 0;font-family:var(--frakt);font-size:1.5rem;color:#fbf7f2;line-height:1}
+.unsichtbar{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @keyframes schwingen{0%{transform:rotate(-3deg)}25%{transform:rotate(2deg)}50%{transform:rotate(-1deg)}75%{transform:rotate(.4deg)}100%{transform:rotate(0)}}
 @media (prefers-reduced-motion:reduce){.schild{animation:none}}
 
@@ -58,7 +60,7 @@ main{max-width:760px;margin:0 auto;padding:6px 14px 48px}
 
 /* ---------- Tageskarte (nächster Abend) ---------- */
 .tageskarte{
-  background:var(--chalk);color:var(--chalk-ink);
+  background:radial-gradient(ellipse at 50% 25%,#8e2630 0%,#6e1820 55%,#4c0f15 100%);color:var(--chalk-ink);
   border:14px solid var(--plank-b);border-radius:6px;
   box-shadow:inset 0 0 50px rgba(0,0,0,.55),0 5px 0 var(--wood-dark),0 12px 24px rgba(0,0,0,.4);
   padding:20px 20px 22px;margin:0 0 22px;text-align:center;
@@ -87,7 +89,7 @@ main{max-width:760px;margin:0 auto;padding:6px 14px 48px}
 .papier .zusage .wer{color:var(--ink)}
 .papier .zusage .wer.leise{color:var(--ink-soft)}
 .knopf.leise[aria-pressed="true"]{background:var(--green);color:#f6eccf;border-color:var(--green-dark);font-weight:800}
-.knopf.leise.nein[aria-pressed="true"]{background:var(--red);border-color:#5e1f16}
+.knopf.leise.nein[aria-pressed="true"]{background:var(--ink);border-color:#000}
 .tag-detail{border:2px solid var(--ink);background:rgba(255,255,255,.28);padding:14px 16px;margin-top:14px}
 .tag-detail h3{margin:0 0 4px}
 .namen{list-style:none;padding:0;margin:6px 0;display:flex;flex-wrap:wrap;gap:6px}
@@ -247,3 +249,20 @@ textarea{min-height:150px;line-height:1.45}
   .zeile .z-name{grid-column:1 / -1}
   .tageskarte{border-width:10px;padding:16px 12px 18px}
 }
+
+/* ---------- Namen-Chips (Wirt) ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.chips button{cursor:pointer;border:1.5px solid var(--ink-soft);background:rgba(255,255,255,.35);border-radius:999px;padding:4px 12px;font-size:.95rem}
+.chips button[aria-pressed="true"]{background:var(--green);border-color:var(--green-dark);color:#fbf7f2;font-weight:800}
+.chips button:disabled{opacity:.35;cursor:default}
+.warnung{border:2px solid var(--red);background:rgba(163,38,47,.08);padding:10px 14px;margin:0 0 12px}
+.warnung p{margin:.2em 0}
+
+/* ---------- Zusagen-Tabelle (Wirt) ---------- */
+table.zusagen th,table.zusagen td{padding:6px 6px}
+table.zusagen td:first-child,table.zusagen th:first-child{position:sticky;left:0;background:var(--paper);font-weight:600}
+table.zusagen .z{text-align:center;font-size:.9rem;white-space:nowrap}
+table.zusagen td.ja{color:#1f6b3a;font-weight:900;font-size:1.1rem}
+table.zusagen td.nein{color:var(--green);font-weight:900;font-size:1.1rem}
+table.zusagen tr.gesamt td{font-weight:800;border-top:2px solid var(--ink)}
+table.zusagen .marke{margin:2px 0 0;font-size:.7rem}

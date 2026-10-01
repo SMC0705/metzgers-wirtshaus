@@ -45,7 +45,7 @@
 <script>
 (function(){
 const W=window.W,K=window.KONFIG,esc=W.esc,fmt=W.fmt;
-let D=null,fehler=false,Z=W.zusagenAktiv()?null:[],zFehler=false,installEvt=null;
+let D=null,fehler=false,Z=null,zFehler=false,installEvt=null;
 let name=W.LS.get("mwa-name")||"";
 const S={offen:"",zeit:"letztes",bpZeit:"letzter",monat:W.heute().slice(0,7),tag:null,loginText:"",sendet:false};
 
@@ -256,7 +256,7 @@ document.addEventListener("click",e=>{
     case"installieren":if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;render()})}break;
     case"akzHaus":W.LS.set("mwa-haus",hausHash());render();W.toast("Prost! Viel Spaß beim Wirtshaus-Abend.");break;
     case"akzBp":W.LS.set("mwa-bp",bpHash());render();break;
-    case"neu":laden();break;
+    case"neu":laden().then(ladeZusagen);break;
   }
 });
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;render()});
@@ -267,11 +267,11 @@ async function ladeZusagen(){
   render();registriere();
 }
 async function laden(){
-  try{D=await W.ladeDaten();fehler=false}catch(e){if(!D)fehler=true}
+  try{D=await W.ladeDaten();fehler=false;W.setzeZusagenUrl(D.einstellungen.zusagenUrl||K.zusagenUrl);if(!W.zusagenAktiv())Z=[]}catch(e){if(!D)fehler=true}
   render();
 }
-laden();ladeZusagen();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){laden();ladeZusagen()}});
+laden().then(ladeZusagen);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")laden().then(ladeZusagen)});
 })();
 </script>
 </body>
