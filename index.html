@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Metzgers Wirtshaus Abende</title>
+<meta name="theme-color" content="#2c4733">
+<link rel="manifest" href="manifest-gast.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Alegreya:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="schild-wrap">
+  <div class="schild"><h1><span class="gross">Metzgers</span><span class="klein">Wirtshaus Abende</span></h1></div>
+</header>
+<main id="inhalt"><p class="laden">Bierdeckel werden gezählt …</p></main>
+<div id="gate" hidden></div>
+<div id="toast" hidden role="status"></div>
+<script src="konfig.js"></script>
+<script src="gemeinsam.js"></script>
+<script>
+(function(){
+const W=window.W,K=window.KONFIG,esc=W.esc,fmt=W.fmt;
+let D=null,fehler=false,Z=W.zusagenAktiv()?null:[],zFehler=false,installEvt=null;
+let name=W.LS.get("mwa-name")||"";
+const S={offen:"",zeit:"letztes",bpZeit:"letzter",monat:W.heute().slice(0,7),tag:null,loginText:"",sendet:false};
+
+const hausHash=()=>W.hash(JSON.stringify([D.regeln.hausKopf,D.regeln.hausRegeln]));
+const bpHash=()=>W.hash(JSON.stringify(D.regeln.bierpongRegeln));
+const hausOk=()=>W.LS.get("mwa-haus")===hausHash();
+const bpOk=()=>W.LS.get("mwa-bp")===bpHash();
+
+/* ---------- Zusagen ---------- */
+function zusageBlock(a,aufTafel){
+  if(!W.zusagenAktiv())return"";
+  if(Z===null)return `<div class="zusage"><p class="wer leise">${zFehler?"Zusagen sind gerade nicht erreichbar.":"Zusagen werden geladen …"}</p></div>`;
+  const mein=W.meinStatus(Z,a.id,name),ja=W.leute(Z,a.id,"ja"),nein=W.leute(Z,a.id,"nein");
+  const k=aufTafel?"kreide":"leise";
+  const frage=mein==="ja"?"Du bist dabei 🍺":mein==="nein"?"Du hast abgesagt":"Bist du dabei?";
+  return `<div class="zusage"><p class="frage">${frage}</p>
+    <div class="reihe"><button class="knopf ${k}" data-a="zusage" data-id="${esc(a.id)}" data-k="ja" aria-pressed="${mein==="ja"}" ${S.sendet?"disabled":""}>🍺 Bin dabei</button>
+    <button class="knopf ${k} nein" data-a="zusage" data-id="${esc(a.id)}" data-k="nein" aria-pressed="${mein==="nein"}" ${S.sendet?"disabled":""}>Kann nicht</button></div>
+    <p class="wer ${ja.length?"":"leise"}">${ja.length?`Dabei (${ja.length}): ${W.namenText(ja)}`:"Noch hat keiner zugesagt."}</p>
+    ${nein.length?`<p class="wer leise">Abgesagt: ${W.namenText(nein)}</p>`:""}</div>`;
+}
+
+/* ---------- Tageskarte ---------- */
+function tageskarte(){
+  const n=W.naechsterAbend(D);
+  if(!n)return `<section class="tageskarte"><p class="tk-klein">Nächster Wirtshaus-Abend</p><p class="tk-gross" style="margin-top:10px">Noch nicht geplant</p>
+    <p class="tk-text">Sobald der Wirt einen neuen Abend einträgt, steht er hier.</p></section>`;
+  const t=W.tageBis(n.datum);
+  const wann=t===0?"Heute!":t===1?"Morgen":`In ${t} Tagen`;
+  return `<section class="tageskarte" aria-labelledby="tk-wann"><p class="tk-klein">Nächster Wirtshaus-Abend</p>
+    <p class="tk-wann" id="tk-wann">${wann}</p><p class="tk-gross">${esc(W.datumLang(n.datum))}</p>
+    ${n.uhrzeit?`<p class="tk-zeit">ab ${esc(n.uhrzeit)} Uhr</p>`:""}
+    ${n.titel?`<p class="tk-titel">${esc(n.titel)}</p>`:""}
+    ${n.notiz?`<p class="tk-text">${esc(n.notiz)}</p>`:""}
+    ${zusageBlock(n,true)}
+    <div class="reihe"><a class="knopf kreide klein" href="${W.icsHref(n)}" download="wirtshaus-abend.ics">📅 In meinen Kalender</a></div></section>`;
+}
+
+/* ---------- Kalender ---------- */
+function tagDetail(a){
+  const vorbei=a.datum<W.heute(),l=W.liter(a);
+  let h=`<div class="tag-detail"><h3>${esc(W.datumLang(a.datum))}</h3>
+    <p class="hinweis">${a.uhrzeit?`ab ${esc(a.uhrzeit)} Uhr`:""}${a.titel?`${a.uhrzeit?" · ":""}${esc(a.titel)}`:""}</p>`;
+  if(vorbei){
+    const ja=Z?W.leute(Z,a.id,"ja"):[];
+    h+=`<p><strong>Dabei waren${ja.length?` (${ja.length})`:""}:</strong> ${Z===null?"wird geladen …":ja.length?W.namenText(ja):"keiner eingetragen"}</p>`;
+    if(l)h+=`<p><strong>Getrunken:</strong> ${fmt(l)} L</p>`;
+  }else{
+    if(a.notiz)h+=`<p>${esc(a.notiz)}</p>`;
+    h+=zusageBlock(a,false)+`<div class="reihe"><a class="knopf leise klein" href="${W.icsHref(a)}" download="wirtshaus-abend.ics">📅 In meinen Kalender</a></div>`;
+  }
+  return h+`<div class="reihe"><button class="knopf leise klein" data-a="tag" data-k="${esc(a.datum)}">Zurück zum Monat</button></div></div>`;
+}
+function kalender(){
+  const [y,m]=S.monat.split("-").map(Number);
+  const erster=new Date(y,m-1,1),tage=new Date(y,m,0).getDate(),versatz=(erster.getDay()+6)%7;
+  const imMonat=D.abende.filter(a=>String(a.datum||"").startsWith(S.monat)).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));
+  const proTag=new Map(imMonat.map(a=>[a.datum,a]));
+  const h=W.heute();
+  let g=["Mo","Di","Mi","Do","Fr","Sa","So"].map(t=>`<div class="wt">${t}</div>`).join("");
+  for(let i=0;i<versatz;i++)g+=`<div class="tag luecke"></div>`;
+  for(let d=1;d<=tage;d++){
+    const ds=`${S.monat}-${String(d).padStart(2,"0")}`,a=proTag.get(ds);
+    const kl=["tag",ds===h?"heute":"",a?(ds<h?"war":"kommt"):""].join(" ");
+    g+=a?`<button class="${kl}" data-a="tag" data-k="${ds}" aria-pressed="${S.tag===ds}" aria-label="${esc(W.datumText(ds))}: Wirtshaus-Abend">${d}</button>`:`<div class="${kl}">${d}</div>`;
+  }
+  const monatsName=erster.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  let unten;
+  if(S.tag&&proTag.get(S.tag))unten=tagDetail(proTag.get(S.tag));
+  else unten=imMonat.length?`<p class="hinweis" style="margin-top:12px">Tipp auf einen markierten Tag, um zu sehen, wer dabei ist.</p><ul class="liste">${imMonat.map(a=>{
+      const vorbei=a.datum<h,ja=Z?W.leute(Z,a.id,"ja"):[];
+      return `<li><span class="info"><strong>${esc(W.datumText(a.datum))}</strong>${a.uhrzeit?` · ${esc(a.uhrzeit)} Uhr`:""}<span class="marke ${vorbei?"war":"kommt"}">${vorbei?"war":"kommt"}</span>
+        ${a.titel?`<br>${esc(a.titel)}`:""}${W.zusagenAktiv()&&Z?`<br><span class="hinweis">👥 ${ja.length} ${vorbei?"waren dabei":"dabei"}</span>`:""}</span>
+        <button class="knopf leise klein" data-a="tag" data-k="${esc(a.datum)}">Ansehen</button></li>`}).join("")}</ul>`
+    :`<p class="leer">In diesem Monat ist kein Abend eingetragen.</p>`;
+  return `<div class="kal-kopf"><button data-a="monat" data-k="-1" aria-label="Vorheriger Monat">‹</button><h2>${esc(monatsName)}</h2><button data-a="monat" data-k="1" aria-label="Nächster Monat">›</button></div>
+    <div class="kal">${g}</div>
+    <div class="legende"><span class="l-war">war schon</span><span class="l-kommt">kommt noch</span></div>${unten}`;
+}
+
+/* ---------- Regeln / Statistik / Bierpong ---------- */
+function hausInhalt(mitKnopf){
+  const r=D.regeln;
+  if(!r.hausKopf.length&&!r.hausRegeln.length)return `<p class="leer">Der Wirt hat noch keine Hausregeln eingetragen.</p>`;
+  return `${r.hausKopf.length?`<div class="kasse">${r.hausKopf.map(t=>`<p>${esc(t)}</p>`).join("")}</div>`:""}${W.regelListe(r.hausRegeln)}
+    ${mitKnopf?`<div class="reihe"><button class="knopf" data-a="akzHaus">Hausregeln akzeptieren</button></div>`:(hausOk()?`<span class="ok">✓ Von dir akzeptiert</span>`:"")}`;
+}
+function statInhalt(){
+  const wahl=[["letztes","Letztes Mal"],["monat","Diesen Monat"],["jahr","Dieses Jahr"],["alle","Alle Zeit"]];
+  const ab=W.abendeIm(D,S.zeit),daten=W.getraenkeSumme(ab),total=daten.reduce((s,d)=>s+d.liter,0);
+  let h=`<h2>Was weggetrunken wurde</h2><div class="wahl" role="group" aria-label="Zeitraum">${wahl.map(([k,t])=>`<button data-a="zeit" data-k="${k}" aria-pressed="${S.zeit===k}">${t}</button>`).join("")}</div>`;
+  if(!daten.length)return h+`<p class="leer">Für diesen Zeitraum ist noch nichts eingetragen.</p>`;
+  const unter=S.zeit==="letztes"?`am ${esc(W.datumText(ab[0].datum))}${ab[0].titel?` · ${esc(ab[0].titel)}`:""}`:`an ${ab.length} ${ab.length===1?"Abend":"Abenden"}`;
+  return h+`<div class="summe"><span class="zahl">${fmt(total)} L</span><span class="text">getrunken ${unter}</span></div>
+  <div class="scroll"><table><thead><tr><th>Getränk</th><th class="n">Stück</th><th class="n">Liter</th></tr></thead><tbody>
+  ${daten.map(d=>`<tr><td><span class="punkt" style="background:${W.farbe(D,d.name)}"></span>${esc(d.name)}</td><td class="n">${fmt(d.anzahl,0)}</td><td class="n">${fmt(d.liter)}</td></tr>`).join("")}
+  </tbody></table></div>
+  <h3>Säulendiagramm · Liter pro Getränk</h3><div class="scroll diagramm">${W.saeulen(D,daten)}</div>
+  <h3>Balkendiagramm · Stück pro Getränk</h3><div class="scroll diagramm">${W.balken(D,daten)}</div>`;
+}
+function bpInhalt(){
+  const regeln=D.regeln.bierpongRegeln;
+  if(!bpOk())return `<h2>Bierpong-Regeln</h2><p>Bevor du an den Tisch darfst: Regeln lesen und akzeptieren.</p>
+    ${regeln.length?W.regelListe(regeln):`<p class="leer">Noch keine Bierpong-Regeln eingetragen.</p>`}
+    <div class="reihe"><button class="knopf" data-a="akzBp">Bierpong-Regeln akzeptieren</button></div>`;
+  const sp=W.bpSpieleIm(D,S.bpZeit),tab=W.bpTabelle(sp);
+  let h=`<details class="nachlesen"><summary>Bierpong-Regeln nachlesen</summary>${W.regelListe(regeln)}</details>
+  <h2>Bierpong-Tabelle</h2>
+  <div class="wahl" role="group" aria-label="Zeitraum"><button data-a="bpzeit" data-k="letzter" aria-pressed="${S.bpZeit==="letzter"}">Letzter Abend</button><button data-a="bpzeit" data-k="alle" aria-pressed="${S.bpZeit==="alle"}">Alle Zeit</button></div>`;
+  if(S.bpZeit==="letzter"&&sp.length)h+=`<p class="hinweis">Spiele vom ${esc(W.datumText(sp[0].datum))}</p>`;
+  h+=`<div class="tafel"><div class="scroll">`+(tab.length
+    ?`<table><thead><tr><th class="n">#</th><th>Spieler</th><th class="n">Siege</th><th class="n">Unent.</th><th class="n">Nied.</th><th class="n">Punkte</th></tr></thead><tbody>
+      ${tab.map((e,i)=>`<tr class="${i===0?"erster":""}"><td class="n">${i+1}</td><td>${i===0?"🏆 ":""}${esc(e.name)}</td><td class="n">${e.s}</td><td class="n">${e.u}</td><td class="n">${e.n}</td><td class="n">${fmt(e.pk)}</td></tr>`).join("")}</tbody></table>`
+    :`<p class="leer">Noch keine Spiele eingetragen.</p>`)+`</div></div><p class="hinweis">Sieg = 1 Punkt, Unentschieden = ½ Punkt.</p>`;
+  if(sp.length)h+=`<h3>${S.bpZeit==="letzter"?"Spiele des Abends":"Letzte Spiele"}</h3><ul class="spiele">${sp.slice(0,15).map(s=>`<li><span class="datum">${esc(W.datumText(s.datum))}</span><span>${W.spielText(s)}</span></li>`).join("")}</ul>`;
+  return h;
+}
+
+/* ---------- Installieren ---------- */
+function installHinweis(){
+  const standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  if(standalone)return"";
+  if(installEvt)return `<div class="installieren"><button class="knopf" data-a="installieren">📲 Als App aufs Handy</button></div>`;
+  if(/iphone|ipad/i.test(navigator.userAgent))return `<div class="installieren"><p class="hinweis">Als App aufs iPhone: unten auf „Teilen“ tippen, dann „Zum Home-Bildschirm“.</p></div>`;
+  return `<div class="installieren"><p class="hinweis">Als App aufs Handy: im Browser-Menü ⋮ auf „Zum Startbildschirm hinzufügen“ tippen.</p></div>`;
+}
+
+/* ---------- Rendern ---------- */
+function gateInhalt(){
+  if(!name){
+    const namen=W.alleNamen(Z);
+    return `<div class="papier" role="dialog" aria-modal="true" aria-labelledby="gate-t"><h2 id="gate-t">Servus! Wer bist du?</h2>
+      <p>Gib deinen Namen ein, so wie dich die anderen kennen. Damit sagst du für die Abende zu. Ein Passwort brauchst du nicht.</p>
+      <label for="login-name">Dein Name</label><input type="text" id="login-name" list="namenliste" maxlength="30" autocomplete="given-name" value="${esc(S.loginText)}" placeholder="z. B. Max">
+      <datalist id="namenliste">${namen.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+      ${namen.length?`<p class="hinweis">Warst du schon mal dabei? Dann wähl deinen Namen aus der Liste.</p>`:""}
+      <div class="reihe"><button class="knopf" data-a="login">Weiter</button></div></div>`;
+  }
+  const r=D.regeln;
+  if(!hausOk()&&(r.hausKopf.length||r.hausRegeln.length))
+    return `<div class="papier" role="dialog" aria-modal="true" aria-labelledby="gate-t"><h2 id="gate-t">Servus ${esc(name)}! Erst die Hausregeln</h2><p>Wer bei Metzgers mitfeiern will, akzeptiert diese Regeln.</p>${hausInhalt(true)}</div>`;
+  return "";
+}
+function render(){
+  const main=W.$("#inhalt"),gate=W.$("#gate");
+  if(!D){
+    main.innerHTML=fehler?`<div class="papier"><h2>Kein Empfang</h2><p>Die Wirtshaus-Daten konnten nicht geladen werden. Prüf deine Internetverbindung.</p><div class="reihe"><button class="knopf" data-a="neu">Nochmal laden</button></div></div>`:`<p class="laden">Bierdeckel werden gezählt …</p>`;
+    return;
+  }
+  const tabs=[["kal","Kalender",false],["haus","Hausregeln",false],["stat","Getränke-Statistik",!hausOk()],["bp","Bierpong",!hausOk()]];
+  main.innerHTML=(name?`<p class="gruss"><span>Servus, <strong>${esc(name)}</strong>!</span><button data-a="logout">Name ändern</button></p>`:"")
+  +tageskarte()+tabs.map(([k,t,gesperrt])=>{
+    const offen=S.offen===k;
+    const zusatz=k==="bp"&&hausOk()&&!bpOk()?`<span class="zu">🔒 Regeln akzeptieren</span>`:(gesperrt?`<span class="zu">🔒</span>`:"");
+    const inhalt=!offen?"":k==="kal"?kalender():k==="haus"?`<h2>Hausregeln</h2>${hausInhalt(false)}`:k==="stat"?statInhalt():bpInhalt();
+    return `<section class="tab"><button class="brett" data-a="tab" data-k="${k}" aria-expanded="${offen}"><span class="nagel"></span><span class="titel">${t}</span>${zusatz}<span class="pfeil" aria-hidden="true">▸</span></button>${offen?`<div class="papier">${inhalt}</div>`:""}</section>`;
+  }).join("")+installHinweis()+`<p class="fuss">Prost &amp; Servus!</p>`;
+  const g=gateInhalt();
+  if(g){
+    const aktiv=document.activeElement&&document.activeElement.id;
+    const war=gate.hidden;gate.innerHTML=g;gate.hidden=false;document.body.style.overflow="hidden";
+    const f=gate.querySelector("#login-name")||gate.querySelector("button");
+    if(f&&(war||aktiv==="login-name")){f.focus({preventScroll:true});if(f.setSelectionRange){const l=f.value.length;f.setSelectionRange(l,l)}}
+  }else{gate.hidden=true;gate.innerHTML="";document.body.style.overflow=""}
+}
+
+function einloggen(){
+  let n=S.loginText.trim().replace(/\s+/g," ");
+  if(n.length<2){W.toast("Bitte gib mindestens 2 Buchstaben ein.");return}
+  const bekannt=W.alleNamen(Z).find(x=>W.gleicherName(x,n));
+  if(bekannt)n=bekannt;
+  else if(n===n.toLowerCase())n=n.replace(/(^|[\s-])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
+  name=n;W.LS.set("mwa-name",n);S.loginText="";render();
+}
+async function zusagen(id,status){
+  if(!name||S.sendet)return;
+  const alt=W.meinStatus(Z,id,name);
+  const neu=alt===status?"weg":status;
+  S.sendet=true;
+  Z=(Z||[]).filter(z=>!(z.abend===id&&W.gleicherName(z.name,name)));
+  if(neu!=="weg")Z.push({abend:id,name,status:neu});
+  render();
+  try{Z=await W.sendeZusage(id,name,neu);W.toast(neu==="ja"?"Eingetragen, bis dann! 🍺":neu==="nein"?"Schade, abgesagt.":"Antwort zurückgenommen.")}
+  catch(e){W.toast("Hat nicht geklappt. Prüf dein Internet und tipp nochmal.");ladeZusagen()}
+  S.sendet=false;render();
+}
+
+document.addEventListener("input",e=>{if(e.target.id==="login-name")S.loginText=e.target.value});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="login-name"){e.preventDefault();einloggen()}});
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-a]");if(!el)return;
+  const k=el.dataset.k;
+  switch(el.dataset.a){
+    case"tab":
+      if((k==="stat"||k==="bp")&&!hausOk()){W.toast("Erst die Hausregeln akzeptieren.");return}
+      S.offen=S.offen===k?"":k;render();break;
+    case"zeit":S.zeit=k;render();break;
+    case"bpzeit":S.bpZeit=k;render();break;
+    case"monat":{const [y,m]=S.monat.split("-").map(Number);const d=new Date(y,m-1+Number(k),1);S.monat=W.iso(d).slice(0,7);S.tag=null;render();break}
+    case"tag":S.tag=S.tag===k?null:k;render();break;
+    case"zusage":zusagen(el.dataset.id,k);break;
+    case"login":einloggen();break;
+    case"logout":if(confirm("Mit einem anderen Namen anmelden?")){name="";W.LS.del("mwa-name");render()}break;
+    case"installieren":if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;render()})}break;
+    case"akzHaus":W.LS.set("mwa-haus",hausHash());render();W.toast("Prost! Viel Spaß beim Wirtshaus-Abend.");break;
+    case"akzBp":W.LS.set("mwa-bp",bpHash());render();break;
+    case"neu":laden();break;
+  }
+});
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;render()});
+
+async function ladeZusagen(){
+  if(!W.zusagenAktiv())return;
+  try{Z=await W.ladeZusagen();zFehler=false}catch(e){if(Z===null)zFehler=true}
+  render();
+}
+async function laden(){
+  try{D=await W.ladeDaten();fehler=false}catch(e){if(!D)fehler=true}
+  render();
+}
+laden();ladeZusagen();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){laden();ladeZusagen()}});
+})();
+</script>
+</body>
+</html>

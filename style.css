@@ -1,0 +1,249 @@
+:root{
+  --wood:#4a2e1b; --wood-dark:#24150b; --plank-a:#6a4329; --plank-b:#4b2d1a;
+  --paper:#f1e4c6; --paper-edge:#d6bf8f; --ink:#2a1b10; --ink-soft:#6b5238;
+  --brass:#c99a3f; --brass-light:#e9c877; --green:#2c4733; --green-dark:#1d3123;
+  --red:#8c2f22; --chalk:#2c332e; --chalk-ink:#ece7da; --chalk-soft:#b9b6aa;
+  --frakt:'UnifrakturMaguntia','Old English Text MT',Georgia,serif;
+  --text:'Alegreya',Georgia,'Times New Roman',serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --wood:#2f1d11; --wood-dark:#140b05; --plank-a:#4e3120; --plank-b:#352013;
+    --paper:#ddcca6; --paper-edge:#b49d6f; --ink:#24170c; --ink-soft:#5a4430;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;min-height:100%;
+  font-family:var(--text);font-size:1.08rem;line-height:1.55;color:var(--ink);
+  background-color:var(--wood);
+  background-image:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 2px,transparent 2px 132px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 7px,rgba(0,0,0,.05) 7px 9px,transparent 9px 19px),
+    linear-gradient(180deg,var(--wood) 0%,var(--wood-dark) 100%);
+  background-attachment:fixed;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--brass-light);outline-offset:2px}
+
+/* ---------- Wirtshausschild ---------- */
+.schild-wrap{display:flex;justify-content:center;padding:34px 16px 18px}
+.schild{
+  position:relative;text-align:center;
+  background:radial-gradient(ellipse at 50% 30%,#365a40 0%,var(--green) 55%,var(--green-dark) 100%);
+  border:3px solid var(--brass);outline:7px solid var(--wood-dark);
+  border-radius:14px 14px 40px 40px / 14px 14px 26px 26px;
+  padding:14px 34px 18px;max-width:560px;width:100%;
+  box-shadow:0 14px 30px rgba(0,0,0,.55), inset 0 0 0 6px rgba(0,0,0,.18);
+  transform-origin:50% -30px;animation:schwingen 2.4s ease-out 1;
+}
+.schild::before,.schild::after{
+  content:"";position:absolute;top:-34px;width:6px;height:28px;
+  background:repeating-linear-gradient(180deg,var(--brass) 0 5px,transparent 5px 7px);border-radius:3px;
+}
+.schild::before{left:22%}.schild::after{right:22%}
+.schild h1{margin:0;font-weight:400;line-height:1;color:var(--brass-light);text-shadow:0 2px 0 rgba(0,0,0,.45)}
+.schild .gross{display:block;font-family:var(--frakt);font-size:clamp(2.8rem,12vw,4.6rem)}
+.schild .klein{display:block;font-family:var(--frakt);font-size:clamp(1.3rem,5.4vw,2rem);margin-top:6px;color:#f3e3b3}
+.schild.wirt{background:radial-gradient(ellipse at 50% 30%,#6a4329 0%,var(--plank-b) 60%,var(--wood-dark) 100%)}
+@keyframes schwingen{0%{transform:rotate(-3deg)}25%{transform:rotate(2deg)}50%{transform:rotate(-1deg)}75%{transform:rotate(.4deg)}100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){.schild{animation:none}}
+
+main{max-width:760px;margin:0 auto;padding:6px 14px 48px}
+
+/* ---------- Tageskarte (nächster Abend) ---------- */
+.tageskarte{
+  background:var(--chalk);color:var(--chalk-ink);
+  border:14px solid var(--plank-b);border-radius:6px;
+  box-shadow:inset 0 0 50px rgba(0,0,0,.55),0 5px 0 var(--wood-dark),0 12px 24px rgba(0,0,0,.4);
+  padding:20px 20px 22px;margin:0 0 22px;text-align:center;
+}
+.tageskarte p{margin:0}
+.tk-klein{color:var(--chalk-soft);font-style:italic}
+.tk-wann{font-family:var(--frakt);font-size:clamp(3rem,14vw,5rem);line-height:1.05;color:var(--brass-light);margin-top:4px!important}
+.tk-gross{font-size:clamp(1.3rem,5vw,1.7rem);font-weight:800;margin-top:4px!important}
+.tk-zeit{font-size:1.2rem;margin-top:2px!important}
+.tk-titel{font-size:1.15rem;font-style:italic;margin-top:8px!important}
+.tk-text{color:var(--chalk-soft);margin:8px auto 0!important;max-width:52ch;white-space:pre-line}
+.tageskarte .reihe{justify-content:center}
+.knopf.kreide{background:transparent;color:var(--chalk-ink);border:2px solid var(--chalk-ink);box-shadow:none;font-weight:600;text-decoration:none}
+.knopf.kreide[aria-pressed="true"]{background:var(--brass-light);color:var(--wood-dark);border-color:var(--brass-light);font-weight:800}
+
+/* ---------- Gruß & Zusagen ---------- */
+.gruss{display:flex;justify-content:center;align-items:baseline;gap:12px;flex-wrap:wrap;color:#f3e3b3;margin:0 0 14px;font-size:1.05rem}
+.gruss strong{color:var(--brass-light)}
+.gruss button{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;opacity:.8;padding:4px}
+.zusage{margin:16px auto 0;max-width:52ch;border-top:1px dashed rgba(236,231,218,.35);padding-top:12px}
+.zusage .frage{font-weight:800;font-size:1.1rem}
+.zusage .reihe{margin-top:8px}
+.zusage .wer{margin-top:10px!important;color:var(--chalk-ink)}
+.zusage .wer.leise{color:var(--chalk-soft);font-style:italic}
+.papier .zusage{margin:14px 0 0;max-width:none;border-top-color:rgba(42,27,16,.25);text-align:left}
+.papier .zusage .wer{color:var(--ink)}
+.papier .zusage .wer.leise{color:var(--ink-soft)}
+.knopf.leise[aria-pressed="true"]{background:var(--green);color:#f6eccf;border-color:var(--green-dark);font-weight:800}
+.knopf.leise.nein[aria-pressed="true"]{background:var(--red);border-color:#5e1f16}
+.tag-detail{border:2px solid var(--ink);background:rgba(255,255,255,.28);padding:14px 16px;margin-top:14px}
+.tag-detail h3{margin:0 0 4px}
+.namen{list-style:none;padding:0;margin:6px 0;display:flex;flex-wrap:wrap;gap:6px}
+.namen li{background:rgba(44,71,51,.12);border:1px solid rgba(44,71,51,.35);border-radius:999px;padding:2px 4px 2px 12px;display:flex;align-items:center;gap:4px}
+.namen li.ab{background:rgba(140,47,34,.08);border-color:rgba(140,47,34,.35)}
+.namen button{background:none;border:0;cursor:pointer;color:var(--red);font-weight:800;padding:2px 8px}
+.dazu{display:flex;gap:8px;margin-top:8px}
+.dazu input{flex:1}
+details.leute summary{cursor:pointer;font-weight:600;padding:4px 0}
+.installieren{text-align:center;margin-top:18px}
+.installieren .hinweis{color:var(--paper);opacity:.8}
+
+/* ---------- Bretter (Tabs) ---------- */
+.tab{margin-bottom:14px}
+.brett{
+  width:100%;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;
+  border:2px solid var(--wood-dark);border-radius:6px;
+  padding:14px 18px;color:#f6e7c5;font-weight:800;font-size:1.3rem;
+  box-shadow:0 4px 0 var(--wood-dark),0 8px 16px rgba(0,0,0,.35);
+  background-image:linear-gradient(180deg,var(--plank-a),var(--plank-b)),
+    repeating-linear-gradient(0deg,rgba(0,0,0,.08) 0 1px,transparent 1px 6px);
+}
+.brett:active{transform:translateY(2px);box-shadow:0 2px 0 var(--wood-dark),0 4px 10px rgba(0,0,0,.35)}
+.brett .nagel{width:12px;height:12px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 35% 35%,var(--brass-light),var(--brass) 50%,#6b4f17)}
+.brett .titel{flex:1}
+.brett .zu{font-size:.95rem;font-weight:400;opacity:.85}
+.brett .pfeil{transition:transform .2s}
+.brett[aria-expanded="true"] .pfeil{transform:rotate(90deg)}
+
+/* ---------- Papier ---------- */
+.papier{
+  background:var(--paper);color:var(--ink);
+  margin:10px 6px 0;padding:22px 22px 24px;border-radius:3px;
+  box-shadow:inset 0 0 50px rgba(130,90,30,.28),0 6px 18px rgba(0,0,0,.4);
+  border:1px solid var(--paper-edge);
+}
+.papier+.papier{margin-top:18px}
+.papier h2{font-family:var(--frakt);font-weight:400;font-size:1.9rem;margin:0 0 12px;line-height:1.1}
+.papier h3{margin:22px 0 8px;font-size:1.15rem}
+.papier p{margin:.4em 0 .8em;max-width:68ch}
+.kasse{border:2px solid var(--ink);padding:12px 16px;margin:0 0 16px;background:rgba(255,255,255,.25)}
+.kasse p{margin:.25em 0;font-weight:600}
+.regeln{list-style:none;padding:0;margin:0}
+.regeln li{position:relative;padding:8px 0 8px 26px;border-bottom:1px dashed rgba(42,27,16,.25);max-width:68ch}
+.regeln li:last-child{border-bottom:0}
+.regeln li::before{content:"";position:absolute;left:4px;top:17px;width:9px;height:9px;background:var(--brass);transform:rotate(45deg)}
+.regeln li.laut{font-weight:800;color:var(--red)}
+.ok{display:inline-block;margin-top:14px;color:var(--green);font-weight:800}
+
+.knopf{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+  background:var(--green);color:#f6eccf;border:2px solid var(--green-dark);
+  border-radius:6px;padding:10px 18px;font-weight:800;text-decoration:none;
+  box-shadow:0 3px 0 var(--green-dark);
+}
+.knopf:active{transform:translateY(2px);box-shadow:0 1px 0 var(--green-dark)}
+.knopf:disabled{opacity:.6;cursor:wait}
+.knopf.leise{background:transparent;color:var(--ink);border-color:var(--ink-soft);box-shadow:none;font-weight:600}
+.knopf.weg{background:transparent;color:var(--red);border-color:var(--red);box-shadow:none;font-weight:600;padding:6px 12px}
+.knopf.klein{padding:6px 12px;font-size:.95rem}
+.reihe{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+/* ---------- Zeitraum-Wahl ---------- */
+.wahl{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}
+.wahl button{cursor:pointer;background:transparent;border:2px solid var(--ink);color:var(--ink);
+  border-radius:999px;padding:5px 14px;font-weight:600;font-size:.98rem}
+.wahl button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+.summe{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.summe .zahl{font-family:var(--frakt);font-size:clamp(3rem,13vw,4.6rem);line-height:1;color:var(--red)}
+.summe .text{color:var(--ink-soft);font-style:italic}
+
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:300px}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid rgba(42,27,16,.2)}
+th{font-size:.95rem;color:var(--ink-soft);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.punkt{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:7px;vertical-align:middle}
+.diagramm svg{display:block;max-width:none}
+.diagramm svg.voll{width:100%;max-width:560px;height:auto}
+.leer{font-style:italic;color:var(--ink-soft);padding:8px 0}
+.hinweis{font-size:.92rem;color:var(--ink-soft);font-style:italic}
+
+/* ---------- Kalender ---------- */
+.kal-kopf{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.kal-kopf h2{margin:0}
+.kal-kopf button{background:transparent;border:2px solid var(--ink);border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:1.2rem;font-weight:800;flex:none}
+.kal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.kal .wt{text-align:center;font-size:.85rem;color:var(--ink-soft);font-weight:600}
+.kal .tag{aspect-ratio:1/1;min-height:36px;border:1px solid rgba(42,27,16,.2);background:rgba(255,255,255,.28);
+  border-radius:4px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;padding:0}
+.kal button.tag{cursor:pointer}
+.kal .tag.luecke{visibility:hidden}
+.kal .tag.heute{outline:2px solid var(--ink);outline-offset:-2px;font-weight:800}
+.kal .tag.war{background:var(--brass);color:var(--wood-dark);font-weight:800;border-color:#8b6a24}
+.kal .tag.kommt{background:var(--green);color:#f6eccf;font-weight:800;border-color:var(--green-dark)}
+.kal .tag[aria-pressed="true"]{box-shadow:0 0 0 3px var(--red)}
+.legende{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 0;font-size:.92rem;color:var(--ink-soft)}
+.legende span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legende .l-war::before{background:var(--brass)}
+.legende .l-kommt::before{background:var(--green)}
+
+/* ---------- Listen ---------- */
+.spiele,.liste{list-style:none;padding:0;margin:8px 0 0}
+.spiele li,.liste li{padding:8px 0;border-bottom:1px dashed rgba(42,27,16,.25);display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+.spiele .datum{color:var(--ink-soft);font-size:.92rem;min-width:7.5em}
+.sieger{font-weight:800}
+.liste li{align-items:center;justify-content:space-between}
+.liste li.gewaehlt{background:rgba(140,47,34,.1);outline:2px solid var(--red);outline-offset:2px}
+.liste .info{flex:1;min-width:180px}
+.marke{display:inline-block;font-size:.8rem;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.marke.kommt{background:var(--green);color:#f6eccf}
+.marke.war{background:var(--brass);color:var(--wood-dark)}
+
+/* ---------- Kreidetafel ---------- */
+.tafel{background:var(--chalk);color:var(--chalk-ink);border:12px solid var(--plank-b);border-radius:4px;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.5),0 4px 0 var(--wood-dark);padding:16px 14px;margin-top:6px}
+.tafel table{min-width:340px}
+.tafel th{color:var(--chalk-soft);border-bottom-color:rgba(236,231,218,.25)}
+.tafel td{border-bottom-color:rgba(236,231,218,.15)}
+.tafel tr.erster td{color:var(--brass-light);font-weight:800}
+.tafel .leer{color:var(--chalk-soft)}
+details.nachlesen{border:2px solid var(--ink);margin:0 0 18px;background:rgba(255,255,255,.2)}
+details.nachlesen summary{cursor:pointer;padding:10px 14px;font-weight:800}
+details.nachlesen .regeln{padding:0 14px 10px}
+
+/* ---------- Gate ---------- */
+#gate{position:fixed;inset:0;z-index:20;background:rgba(20,11,5,.82);overflow-y:auto;
+  padding:calc(24px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px))}
+#gate[hidden]{display:none}
+#gate .papier{max-width:640px;margin:0 auto}
+
+/* ---------- Formulare (Wirt) ---------- */
+label{display:block;font-weight:600;font-size:.95rem;margin:10px 0 4px}
+input[type=text],input[type=date],input[type=time],input[type=password],textarea{
+  width:100%;padding:8px 10px;border:2px solid var(--ink-soft);border-radius:4px;background:#fffaf0;color:#24170c}
+textarea{min-height:150px;line-height:1.45}
+.zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.zwei label{margin-top:10px}
+.zeile{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;margin-bottom:8px}
+.zeile label{margin:0 0 3px;font-size:.85rem}
+.check,.ergebnis label{display:flex;gap:8px;align-items:center;font-weight:600;margin:14px 0 0}
+.ergebnis{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 4px}
+.ergebnis label{font-weight:400;margin:0}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;
+  background:var(--wood-dark);color:var(--paper);border:2px solid var(--brass);
+  padding:10px 18px;border-radius:6px;max-width:90vw;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#toast[hidden]{display:none}
+.laden{text-align:center;color:var(--paper);font-style:italic;padding:30px 0}
+.fuss{text-align:center;color:var(--paper);opacity:.75;font-size:.9rem;margin-top:28px}
+@media (max-width:520px){
+  .papier{padding:18px 15px 20px;margin:10px 0 0}
+  .zeile{grid-template-columns:1fr 1fr}
+  .zeile .z-name{grid-column:1 / -1}
+  .tageskarte{border-width:10px;padding:16px 12px 18px}
+}

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Metzgers Wirtshaus – Wirt</title>
+<meta name="theme-color" content="#4a2e1b">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest-admin.json">
+<link rel="icon" href="icon-admin-192.png">
+<link rel="apple-touch-icon" href="icon-admin-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Alegreya:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="schild-wrap">
+  <div class="schild wirt"><h1><span class="gross">Metzgers</span><span class="klein">Wirtsstube</span></h1></div>
+</header>
+<main id="inhalt"><p class="laden">Schlüssel wird gesucht …</p></main>
+<div id="toast" hidden role="status"></div>
+<datalist id="getraenkeliste"></datalist>
+<datalist id="namenliste"></datalist>
+<datalist id="groessen"><option value="0,33"><option value="0,5"><option value="0,7"><option value="1"><option value="0,02"><option value="0,04"></datalist>
+<script src="konfig.js"></script>
+<script src="gemeinsam.js"></script>
+<script>
+(function(){
+const W=window.W,K=window.KONFIG,esc=W.esc,fmt=W.fmt;
+let D=null,token=W.LS.get("mwa-token")||"",fehlerText="",Z=W.zusagenAktiv()?null:[];
+const offeneLeute=new Set();
+const draft={abend:null,spiel:null,regeln:null};
+
+/* ---------- GitHub ---------- */
+const b64enc=str=>{const b=new TextEncoder().encode(str);let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)};
+const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)));
+const kopf=()=>({Authorization:"Bearer "+token,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"});
+async function holeDatei(){
+  const r=await fetch(W.apiUrl()+"?ref="+encodeURIComponent(K.github.branch)+"&t="+Date.now(),{headers:kopf(),cache:"no-store"});
+  if(r.status===401||r.status===403)throw new Error("token");
+  if(r.status===404)throw new Error("fehlt");
+  if(!r.ok)throw new Error("http "+r.status);
+  const j=await r.json();
+  return {sha:j.sha,daten:W.normal(JSON.parse(b64dec(j.content)))};
+}
+async function speichere(aendern,nachricht){
+  for(let versuch=0;versuch<3;versuch++){
+    const {sha,daten}=await holeDatei();
+    aendern(daten);
+    const r=await fetch(W.apiUrl(),{method:"PUT",headers:kopf(),body:JSON.stringify({message:nachricht,content:b64enc(JSON.stringify(daten,null,1)),sha,branch:K.github.branch})});
+    if(r.status===409||r.status===422)continue;
+    if(r.status===401||r.status===403)throw new Error("token");
+    if(!r.ok)throw new Error("http "+r.status);
+    D=daten;return;
+  }
+  throw new Error("konflikt");
+}
+function fehler(e){
+  const m=e&&e.message;
+  if(m==="token")W.toast("GitHub lässt dich nicht rein. Prüf den Schlüssel (Token) unten.");
+  else if(m==="fehlt")W.toast("data.json wurde im Repo nicht gefunden. Prüf konfig.js.");
+  else W.toast("Speichern hat nicht geklappt. Prüf das Internet und versuch es nochmal.");
+}
+function abendNachricht(a){
+  const zeile=W.datumLang(a.datum)+(a.uhrzeit?` ab ${a.uhrzeit} Uhr`:"");
+  return ["🍺 Metzgers Wirtshaus-Abend!",zeile,a.titel||"",a.notiz||"","Sag in der App zu: "+K.seite].filter(Boolean).join("\n");
+}
+async function teilen(a){
+  const text=abendNachricht(a);
+  if(navigator.share){try{await navigator.share({text});return}catch(e){if(e&&e.name==="AbortError")return}}
+  window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank","noopener");
+}
+
+/* ---------- Entwürfe ---------- */
+const neuerAbend=()=>({id:null,datum:W.heute(),uhrzeit:"19:00",titel:"",notiz:"",rows:[]});
+const neuesSpiel=()=>({datum:(draft.spiel&&draft.spiel.datum)||W.heute(),team1:"",team2:"",ergebnis:"1"});
+const leereZeile=()=>({name:"",anzahl:"",groesse:"0,5"});
+
+/* ---------- Ansichten ---------- */
+function anmeldung(){
+  return `<div class="papier"><h2>Wirt anmelden</h2>
+  <p>Damit deine Änderungen bei allen ankommen, braucht diese App einmalig deinen GitHub-Schlüssel (Fine-grained Token mit „Contents: Read and write“ nur für das Repo <strong>${esc(K.github.repo)}</strong>). Er bleibt nur auf diesem Handy gespeichert.</p>
+  ${fehlerText?`<p style="color:var(--red);font-weight:800">${esc(fehlerText)}</p>`:""}
+  <label for="tok">GitHub-Token</label><input type="password" id="tok" autocomplete="off" placeholder="github_pat_…">
+  <div class="reihe"><button class="knopf" data-a="verbinden">Verbinden</button></div></div>`;
+}
+function abendForm(){
+  const a=draft.abend;
+  return `<div class="papier">
+  <h2>${a.id?"Abend bearbeiten":"Neuen Abend eintragen"}</h2>
+  <div class="zwei">
+    <div><label for="a-datum">Datum</label><input type="date" id="a-datum" data-b="abend.datum" value="${esc(a.datum)}"></div>
+    <div><label for="a-zeit">Uhrzeit</label><input type="time" id="a-zeit" data-b="abend.uhrzeit" value="${esc(a.uhrzeit)}"></div>
+  </div>
+  <label for="a-titel">Titel (optional)</label><input type="text" id="a-titel" data-b="abend.titel" value="${esc(a.titel)}" placeholder="z. B. Kirchweih-Samstag">
+  <label for="a-notiz">Info für die Gäste (optional)</label><textarea id="a-notiz" data-b="abend.notiz" style="min-height:80px" placeholder="z. B. Jeder bringt seinen Kasten selber mit.">${esc(a.notiz)}</textarea>
+  <h3>Getränke</h3>
+  <p class="hinweis">Bei geplanten Abenden leer lassen. Nach dem Abend hier eintragen, was getrunken wurde.</p>
+  ${a.rows.map((row,i)=>`<div class="zeile">
+    <div class="z-name"><label for="r${i}n">Getränk</label><input type="text" id="r${i}n" list="getraenkeliste" data-b="abend.rows.${i}.name" value="${esc(row.name)}" placeholder="Helles"></div>
+    <div><label for="r${i}a">Anzahl</label><input type="text" inputmode="decimal" id="r${i}a" data-b="abend.rows.${i}.anzahl" value="${esc(row.anzahl)}" placeholder="12"></div>
+    <div><label for="r${i}g">Größe in L</label><input type="text" inputmode="decimal" id="r${i}g" list="groessen" data-b="abend.rows.${i}.groesse" value="${esc(row.groesse)}"></div>
+    <button class="knopf weg" data-a="rowDel" data-i="${i}" aria-label="Zeile entfernen">✕</button></div>`).join("")}
+  <div class="reihe"><button class="knopf leise klein" data-a="rowAdd">+ Getränk</button></div>
+  <div class="reihe">
+    <button class="knopf" data-a="abendSave">${a.id?"Änderungen speichern":"Abend speichern"}</button>
+    ${a.id?`<button class="knopf leise" data-a="abendNeu">Abbrechen</button>`:""}
+  </div></div>`;
+}
+function leuteBlock(x,vorbei){
+  if(!W.zusagenAktiv())return"";
+  if(Z===null)return `<p class="hinweis">Zusagen werden geladen …</p>`;
+  const ja=W.leute(Z,x.id,"ja"),nein=W.leute(Z,x.id,"nein");
+  return `<details class="leute" data-id="${esc(x.id)}" ${offeneLeute.has(x.id)?"open":""}><summary>👥 ${ja.length} ${vorbei?"waren dabei":"dabei"}${nein.length?` · ${nein.length} abgesagt`:""}</summary>
+    ${ja.length?`<ul class="namen">${ja.map(n=>`<li>${esc(n)}<button data-a="leutWeg" data-id="${esc(x.id)}" data-n="${esc(n)}" aria-label="${esc(n)} entfernen">✕</button></li>`).join("")}</ul>`:`<p class="hinweis">Noch keiner.</p>`}
+    ${nein.length?`<p class="hinweis" style="margin-bottom:2px">Abgesagt:</p><ul class="namen">${nein.map(n=>`<li class="ab">${esc(n)}<button data-a="leutWeg" data-id="${esc(x.id)}" data-n="${esc(n)}" aria-label="${esc(n)} entfernen">✕</button></li>`).join("")}</ul>`:""}
+    <div class="dazu"><input type="text" id="dazu-${esc(x.id)}" list="namenliste" placeholder="Name nachtragen" maxlength="30" aria-label="Name nachtragen"><button class="knopf klein" data-a="leutDazu" data-id="${esc(x.id)}">+ ${vorbei?"war da":"kommt"}</button></div>
+  </details>`;
+}
+function werKommt(){
+  const h=W.heute();
+  const kommend=D.abende.filter(a=>String(a.datum||"")>=h).sort((a,b)=>(a.datum+(a.uhrzeit||"")).localeCompare(b.datum+(b.uhrzeit||"")));
+  let inhalt;
+  if(!W.zusagenAktiv())inhalt=`<p class="hinweis">Zusagen sind noch nicht eingerichtet. Siehe ANLEITUNG, Schritt 3.</p>`;
+  else if(!kommend.length)inhalt=`<p class="leer">Kein Abend geplant. Leg unten einen an.</p>`;
+  else if(Z===null)inhalt=`<p class="hinweis">Zusagen werden geladen …</p>`;
+  else inhalt=kommend.map(a=>{const ja=W.leute(Z,a.id,"ja"),nein=W.leute(Z,a.id,"nein");
+    return `<div class="tag-detail"><h3>${esc(W.datumText(a.datum))}${a.uhrzeit?` · ${esc(a.uhrzeit)} Uhr`:""}${a.titel?` · ${esc(a.titel)}`:""}</h3>
+      <p><strong>${ja.length} kommen${ja.length?":":""}</strong> ${W.namenText(ja)}</p>
+      ${nein.length?`<p class="hinweis">Abgesagt: ${W.namenText(nein)}</p>`:""}
+      <div class="reihe"><button class="knopf leise klein" data-a="teilen" data-id="${esc(a.id)}">📤 In die Gruppe schicken</button></div></div>`}).join("");
+  return `<div class="papier"><h2>Wer kommt?</h2>${inhalt}${W.zusagenAktiv()?`<div class="reihe"><button class="knopf leise klein" data-a="zNeu">Aktualisieren</button></div>`:""}</div>`;
+}
+function abendListe(){
+  const ab=W.abendeSortiert(D),h=W.heute();
+  return `<div class="papier"><h2>Alle Abende</h2>
+  ${ab.length?`<ul class="liste">${ab.map(x=>{const vorbei=x.datum<h,l=W.liter(x);
+    return `<li><span class="info"><strong>${esc(W.datumText(x.datum))}</strong>${x.uhrzeit?` · ${esc(x.uhrzeit)}`:""}<span class="marke ${vorbei?"war":"kommt"}">${vorbei?"war":"kommt"}</span>${x.titel?`<br>${esc(x.titel)}`:""}
+      <br><span class="hinweis">${l?`${fmt(l)} L getrunken`:(vorbei?"Noch keine Getränke eingetragen":"Geplant")}</span>${leuteBlock(x,vorbei)}</span>
+      <span class="reihe" style="margin:0">${!vorbei?`<button class="knopf leise klein" data-a="teilen" data-id="${esc(x.id)}">📤 Teilen</button>`:""}<button class="knopf leise klein" data-a="abendEdit" data-id="${esc(x.id)}">Bearbeiten</button><button class="knopf weg" data-a="abendDel" data-id="${esc(x.id)}">Löschen</button></span></li>`}).join("")}</ul>`
+    :`<p class="leer">Noch kein Abend eingetragen. Leg oben den ersten an.</p>`}</div>`;
+}
+function spielForm(){
+  const sp=draft.spiel,alle=W.bpSpieleIm(D,"alle");
+  return `<div class="papier"><h2>Bierpong-Spiel eintragen</h2>
+  <label for="s-datum">Datum</label><input type="date" id="s-datum" data-b="spiel.datum" value="${esc(sp.datum)}">
+  <label for="s-t1">Team 1 (Namen mit Komma trennen)</label><input type="text" id="s-t1" data-b="spiel.team1" value="${esc(sp.team1)}" placeholder="Tobi, Max">
+  <label for="s-t2">Team 2</label><input type="text" id="s-t2" data-b="spiel.team2" value="${esc(sp.team2)}" placeholder="Lena, Basti">
+  <label>Ergebnis</label><div class="ergebnis">
+    ${[["1","Team 1 gewinnt"],["2","Team 2 gewinnt"],["u","Unentschieden (½ Punkt)"]].map(([k,t])=>`<label><input type="radio" name="erg" data-b="spiel.ergebnis" value="${k}" ${sp.ergebnis===k?"checked":""}> ${t}</label>`).join("")}
+  </div>
+  <div class="reihe"><button class="knopf" data-a="spielSave">Spiel speichern</button></div>
+  <h3>Eingetragene Spiele</h3>
+  ${alle.length?`<ul class="liste">${alle.map(s=>`<li><span class="info"><span class="hinweis">${esc(W.datumText(s.datum))}</span><br>${W.spielText(s)}</span><button class="knopf weg" data-a="spielDel" data-id="${esc(s.id)}">Löschen</button></li>`).join("")}</ul>`
+    :`<p class="leer">Noch keine Spiele. Trag oben das erste ein.</p>`}</div>`;
+}
+function regelForm(){
+  const r=draft.regeln;
+  return `<div class="papier"><h2>Regeln bearbeiten</h2>
+  <p class="hinweis">Eine Regel pro Zeile. Zeilen in GROSSBUCHSTABEN werden rot hervorgehoben. Nach einer Änderung muss jeder die Regeln neu akzeptieren.</p>
+  <label for="r-kopf">Hausregeln – Kasten oben</label><textarea id="r-kopf" data-b="regeln.kopf" style="min-height:90px">${esc(r.kopf)}</textarea>
+  <label for="r-haus">Hausregeln</label><textarea id="r-haus" data-b="regeln.haus">${esc(r.haus)}</textarea>
+  <label for="r-bp">Bierpong-Regeln</label><textarea id="r-bp" data-b="regeln.bp">${esc(r.bp)}</textarea>
+  <div class="reihe"><button class="knopf" data-a="regelnSave">Regeln speichern</button></div></div>`;
+}
+function technik(){
+  return `<div class="papier"><h2>Gäste &amp; Zugang</h2>
+  <p>Gäste melden sich in der Gast-App nur mit ihrem Namen an. Neue Abende schickst du über „📤 Teilen“ in eure WhatsApp-Gruppe.</p>
+  <div class="reihe"><a class="knopf leise" href="./">Zur Gast-App</a><button class="knopf weg" data-a="abmelden">Token von diesem Handy löschen</button></div></div>`;
+}
+function render(){
+  const main=W.$("#inhalt");
+  if(!token||!D){main.innerHTML=token&&!fehlerText?`<p class="laden">Schlüssel wird gesucht …</p>`:anmeldung();return}
+  if(!draft.abend)draft.abend=neuerAbend();
+  if(!draft.spiel)draft.spiel=neuesSpiel();
+  if(!draft.regeln)draft.regeln={kopf:D.regeln.hausKopf.join("\n"),haus:D.regeln.hausRegeln.join("\n"),bp:D.regeln.bierpongRegeln.join("\n")};
+  const namen=[...new Set(["Helles","Weißbier","Pils","Radler","Spezi","Schnaps",...W.getraenkeSumme(D.abende).map(x=>x.name)])];
+  W.$("#getraenkeliste").innerHTML=namen.map(n=>`<option value="${esc(n)}">`).join("");
+  W.$("#namenliste").innerHTML=W.alleNamen(Z).map(n=>`<option value="${esc(n)}">`).join("");
+  main.innerHTML=werKommt()+abendForm()+abendListe()+spielForm()+regelForm()+technik();
+}
+
+/* ---------- Eingaben ---------- */
+function setze(pfad,wert){const t=pfad.split(".");let o=draft;for(let i=0;i<t.length-1;i++)o=o[t[i]];o[t[t.length-1]]=wert}
+document.addEventListener("input",e=>{const b=e.target.dataset&&e.target.dataset.b;if(b&&e.target.type!=="checkbox")setze(b,e.target.value)});
+document.addEventListener("change",e=>{const b=e.target.dataset&&e.target.dataset.b;if(!b)return;
+  setze(b,e.target.type==="checkbox"?e.target.checked:e.target.value);
+  if(b==="abend.datum")render();});
+
+async function mitKnopf(el,fn){el.disabled=true;try{await fn()}catch(err){fehler(err)}finally{el.disabled=false}}
+
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-a]");if(!el)return;
+  switch(el.dataset.a){
+    case"verbinden":{
+      const v=W.$("#tok").value.trim();if(!v){W.toast("Bitte den Token einfügen.");return}
+      token=v;fehlerText="";mitKnopf(el,async()=>{await start();});break;}
+    case"abmelden":if(confirm("Token von diesem Handy löschen?")){W.LS.del("mwa-token");token="";D=null;render()}break;
+    case"rowAdd":draft.abend.rows.push(leereZeile());render();{const f=W.$("#r"+(draft.abend.rows.length-1)+"n");f&&f.focus()}break;
+    case"rowDel":draft.abend.rows.splice(Number(el.dataset.i),1);render();break;
+    case"abendNeu":draft.abend=neuerAbend();render();break;
+    case"abendEdit":{
+      const x=D.abende.find(y=>y.id===el.dataset.id);if(!x)return;
+      draft.abend={id:x.id,datum:x.datum||W.heute(),uhrzeit:x.uhrzeit||"",titel:x.titel||"",notiz:x.notiz||"",
+        rows:(x.getraenke||[]).map(g=>({name:g.name||"",anzahl:fmt(g.anzahl,2),groesse:fmt(g.groesse,3)})),};
+      render();window.scrollTo({top:0,behavior:"smooth"});break;}
+    case"abendSave":mitKnopf(el,async()=>{
+      const a=draft.abend;
+      if(!a.datum){W.toast("Bitte ein Datum wählen.");return}
+      const rows=a.rows.map(r=>({name:String(r.name).trim(),anzahl:W.zahl(r.anzahl),groesse:W.zahl(r.groesse)})).filter(r=>r.name&&r.anzahl>0&&r.groesse>0);
+      const eintrag={id:a.id||W.neueId(),datum:a.datum,uhrzeit:a.uhrzeit||"",titel:String(a.titel||"").trim(),notiz:String(a.notiz||"").trim(),getraenke:rows};
+      await speichere(d=>{const i=d.abende.findIndex(x=>x.id===eintrag.id);if(i>=0)d.abende[i]=eintrag;else d.abende.push(eintrag)},(a.id?"Abend geändert: ":"Neuer Abend: ")+eintrag.datum);
+      draft.abend=neuerAbend();render();W.toast((a.id?"Abend gespeichert.":"Abend eingetragen.")+" Gäste sehen es in ca. 1 Minute.");
+    });break;
+    case"abendDel":{
+      const x=D.abende.find(y=>y.id===el.dataset.id);if(!x)return;
+      if(!confirm(`Abend vom ${W.datumText(x.datum)} wirklich löschen?`))return;
+      mitKnopf(el,async()=>{await speichere(d=>{d.abende=d.abende.filter(y=>y.id!==x.id)},"Abend gelöscht: "+x.datum);render();W.toast("Abend gelöscht.")});break;}
+    case"teilen":{const x=D.abende.find(y=>y.id===el.dataset.id);if(x)teilen(x);break;}
+    case"zNeu":ladeZusagen();break;
+    case"leutDazu":{
+      const id=el.dataset.id,f=document.getElementById("dazu-"+id),n=f?f.value.trim().replace(/\s+/g," "):"";
+      if(n.length<2){W.toast("Bitte einen Namen eingeben.");return}
+      const bekannt=W.alleNamen(Z).find(x=>W.gleicherName(x,n))||n;
+      mitKnopf(el,async()=>{try{Z=await W.sendeZusage(id,bekannt,"ja");render();W.toast(bekannt+" eingetragen.")}catch(e){W.toast("Zusagen gerade nicht erreichbar.")}});break;}
+    case"leutWeg":{
+      const id=el.dataset.id,n=el.dataset.n;
+      if(!confirm(n+" hier entfernen?"))return;
+      mitKnopf(el,async()=>{try{Z=await W.sendeZusage(id,n,"weg");render()}catch(e){W.toast("Zusagen gerade nicht erreichbar.")}});break;}
+    case"spielSave":mitKnopf(el,async()=>{
+      const s=draft.spiel;
+      const t1=String(s.team1).split(",").map(x=>x.trim()).filter(Boolean),t2=String(s.team2).split(",").map(x=>x.trim()).filter(Boolean);
+      if(!s.datum){W.toast("Bitte ein Datum wählen.");return}
+      if(!t1.length||!t2.length){W.toast("Trag bei beiden Teams mindestens einen Namen ein.");return}
+      const sp={id:W.neueId(),datum:s.datum,team1:t1,team2:t2,ergebnis:s.ergebnis,zeit:Date.now()};
+      await speichere(d=>{d.spiele.push(sp)},"Bierpong-Spiel "+sp.datum);
+      draft.spiel=neuesSpiel();render();W.toast("Spiel gespeichert.");
+    });break;
+    case"spielDel":{
+      if(!confirm("Dieses Spiel wirklich löschen?"))return;
+      const id=el.dataset.id;
+      mitKnopf(el,async()=>{await speichere(d=>{d.spiele=d.spiele.filter(y=>y.id!==id)},"Bierpong-Spiel gelöscht");render();W.toast("Spiel gelöscht.")});break;}
+    case"regelnSave":mitKnopf(el,async()=>{
+      const r=draft.regeln,z=t=>String(t).split("\n").map(s=>s.trim()).filter(Boolean);
+      await speichere(d=>{d.regeln={hausKopf:z(r.kopf),hausRegeln:z(r.haus),bierpongRegeln:z(r.bp)}},"Regeln geändert");
+      W.toast("Regeln gespeichert.");
+    });break;
+  }
+});
+
+async function start(){
+  if(!token){render();return}
+  try{
+    D=(await holeDatei()).daten;W.LS.set("mwa-token",token);fehlerText="";
+  }catch(e){
+    D=null;fehlerText=e.message==="token"?"Der Token passt nicht oder hat keine Schreibrechte für das Repo.":e.message==="fehlt"?"data.json wurde im Repo nicht gefunden. Prüf konfig.js.":"Keine Verbindung zu GitHub. Prüf dein Internet.";
+  }
+  render();
+}
+async function ladeZusagen(){
+  if(!W.zusagenAktiv())return;
+  try{Z=await W.ladeZusagen()}catch(e){if(Z===null)Z=[];W.toast("Zusagen gerade nicht erreichbar.")}
+  render();
+}
+document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("leute")){d.open?offeneLeute.add(d.dataset.id):offeneLeute.delete(d.dataset.id)}},true);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&D)ladeZusagen()});
+start();ladeZusagen();
+})();
+</script>
+</body>
+</html>

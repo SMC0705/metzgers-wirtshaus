@@ -1,0 +1,35 @@
+{
+ "regeln": {
+  "hausKopf": [
+   "Jeder Verstoß kostet 2€ und das Geld wird für den nächsten Kasten genutzt.",
+   "Wer Fenster/Türen aufmacht, schließt diese auch."
+  ],
+  "hausRegeln": [
+   "ES WIRD NUR ALKOHOL UND CANNABIS KONSUMIERT!",
+   "Wer neue Leute einladen will, fragt bitte zuerst.",
+   "Wer Lichter anmachen kann, kann diese auch ausschalten.",
+   "Müll wird unten im Hof in die Mülltonnen getan.",
+   "Getränke werden selber mitgenommen und dann auch wieder selber entsorgt.",
+   "Getränke werden GANZ ausgetrunken oder in den Gulli geschüttet, nicht einfach rumstehen lassen.",
+   "Wer kotzen muss, kann dies im Gulli oder im Klo machen. Wer daneben kotzen kann, der kann das auch wegputzen.",
+   "Kippenstummel bitte in die Aschenbecher oder in den Gulli schmeißen.",
+   "Gras wird bitte bei der Bank beim Traktor geraucht.",
+   "Bitte nicht vor der Küchentüre laut sein, da meine Eltern oben an der Treppe ihr Schlafzimmerfenster haben."
+  ],
+  "bierpongRegeln": [
+   "ELLENBOGEN NUR BIS ZUR TISCHKANTE!",
+   "Das Team, das gerade nicht wirft, muss die Bälle holen!",
+   "Kein Airball.",
+   "Keine Bombe.",
+   "Schere, Stein, Papier, wer anfangen darf.",
+   "Bei 4 Bechern darf man zusammenstellen.",
+   "Bei Aufpraller 2 Becher weg.",
+   "Ab der Hälfte des Tisches gilt der Ball als zurückgekommen.",
+   "Bei Zurückkommen einen Trickshot.",
+   "Wenn beide treffen, dürfen sie nochmal (im 1v1 immer 2 Bälle).",
+   "Wenn beide nur noch einen Becher haben und das eine Team trifft, darf das andere Team auch noch werfen. Trifft es, ist es Unentschieden (in der App gibt's dafür einen halben Punkt)."
+  ]
+ },
+ "abende": [],
+ "spiele": []
+}
