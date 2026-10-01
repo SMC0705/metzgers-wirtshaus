@@ -40,10 +40,10 @@ function zusageBlock(a,aufTafel){
   if(Z===null)return `<div class="zusage"><p class="wer leise">${zFehler?"Zusagen sind gerade nicht erreichbar.":"Zusagen werden geladen …"}</p></div>`;
   const mein=W.meinStatus(Z,a.id,name),ja=W.leute(Z,a.id,"ja"),nein=W.leute(Z,a.id,"nein");
   const k=aufTafel?"kreide":"leise";
-  const frage=mein==="ja"?"Du bist dabei 🍺":mein==="nein"?"Du hast abgesagt":"Bist du dabei?";
+  const frage=mein==="ja"?"Du kommst 🍺":mein==="nein"?"Du kommst nicht":"Kommst du?";
   return `<div class="zusage"><p class="frage">${frage}</p>
-    <div class="reihe"><button class="knopf ${k}" data-a="zusage" data-id="${esc(a.id)}" data-k="ja" aria-pressed="${mein==="ja"}" ${S.sendet?"disabled":""}>🍺 Bin dabei</button>
-    <button class="knopf ${k} nein" data-a="zusage" data-id="${esc(a.id)}" data-k="nein" aria-pressed="${mein==="nein"}" ${S.sendet?"disabled":""}>Kann nicht</button></div>
+    <div class="reihe"><button class="knopf ${k}" data-a="zusage" data-id="${esc(a.id)}" data-k="ja" aria-pressed="${mein==="ja"}" ${S.sendet?"disabled":""}>🍺 Ja, ich komme</button>
+    <button class="knopf ${k} nein" data-a="zusage" data-id="${esc(a.id)}" data-k="nein" aria-pressed="${mein==="nein"}" ${S.sendet?"disabled":""}>Nein, ich komme nicht</button></div>
     <p class="wer ${ja.length?"":"leise"}">${ja.length?`Dabei (${ja.length}): ${W.namenText(ja)}`:"Noch hat keiner zugesagt."}</p>
     ${nein.length?`<p class="wer leise">Abgesagt: ${W.namenText(nein)}</p>`:""}</div>`;
 }
@@ -60,8 +60,7 @@ function tageskarte(){
     ${n.uhrzeit?`<p class="tk-zeit">ab ${esc(n.uhrzeit)} Uhr</p>`:""}
     ${n.titel?`<p class="tk-titel">${esc(n.titel)}</p>`:""}
     ${n.notiz?`<p class="tk-text">${esc(n.notiz)}</p>`:""}
-    ${zusageBlock(n,true)}
-    <div class="reihe"><a class="knopf kreide klein" href="${W.icsHref(n)}" download="wirtshaus-abend.ics">📅 In meinen Kalender</a></div></section>`;
+    ${zusageBlock(n,true)}</section>`;
 }
 
 /* ---------- Kalender ---------- */
@@ -75,7 +74,7 @@ function tagDetail(a){
     if(l)h+=`<p><strong>Getrunken:</strong> ${fmt(l)} L</p>`;
   }else{
     if(a.notiz)h+=`<p>${esc(a.notiz)}</p>`;
-    h+=zusageBlock(a,false)+`<div class="reihe"><a class="knopf leise klein" href="${W.icsHref(a)}" download="wirtshaus-abend.ics">📅 In meinen Kalender</a></div>`;
+    h+=zusageBlock(a,false);
   }
   return h+`<div class="reihe"><button class="knopf leise klein" data-a="tag" data-k="${esc(a.datum)}">Zurück zum Monat</button></div></div>`;
 }

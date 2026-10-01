@@ -1,5 +1,5 @@
 // Bei Änderungen an den Dateien die Versionsnummer hochzählen.
-const VERSION = "mwa-v2";
+const VERSION = "mwa-v3";
 const DATEIEN = ["./", "index.html", "admin.html", "style.css", "konfig.js", "gemeinsam.js",
   "manifest-gast.json", "manifest-admin.json", "icon-192.png", "icon-512.png", "icon-admin-192.png", "icon-admin-512.png"];
 
