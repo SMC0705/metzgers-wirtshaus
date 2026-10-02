@@ -40,5 +40,8 @@
    "getraenke": []
   }
  ],
- "spiele": []
+ "spiele": [],
+ "einstellungen": {
+  "zusagenUrl": "https://script.google.com/macros/s/AKfycbzy_JGRdyf97LF1OW58Obsedz33qWz_3yBBn1Y2uoYzFJd05O0KDxfNEoI3GU6irp76/exec"
+ }
 }
