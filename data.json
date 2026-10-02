@@ -30,16 +30,7 @@
    "Wenn beide nur noch einen Becher haben und das eine Team trifft, darf das andere Team auch noch werfen. Trifft es, ist es Unentschieden (in der App gibt's dafür einen halben Punkt)."
   ]
  },
- "abende": [
-  {
-   "id": "mupxqb5ga0yg",
-   "datum": "2026-10-02",
-   "uhrzeit": "20:00",
-   "titel": "Ganz Normal",
-   "notiz": "",
-   "getraenke": []
-  }
- ],
+ "abende": [],
  "spiele": [],
  "einstellungen": {
   "zusagenUrl": "https://script.google.com/macros/s/AKfycbzy_JGRdyf97LF1OW58Obsedz33qWz_3yBBn1Y2uoYzFJd05O0KDxfNEoI3GU6irp76/exec"
